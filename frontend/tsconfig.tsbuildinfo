@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/api.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/AddSnippetForm.tsx","./src/components/AnswerCard.tsx","./src/components/ConfidenceBadge.tsx","./src/components/QuestionInput.tsx","./src/components/SourceCard.tsx"],"version":"5.6.3"}
