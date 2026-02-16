@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     # Chroma / data
     chroma_persist_dir: str = "data/chroma"
     data_dir: Path = Path("data")
+    # Where to save uploaded PDF/DOCX (default: data/uploads). Set empty to disable.
+    upload_dir: str = "data/uploads"
 
     # Embeddings: local by default
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -36,7 +38,39 @@ class Settings(BaseSettings):
     # If "auto": use Azure if azure_openai_api_key set, else Ollama if ollama_base_url reachable, else "none"
     llm_provider: str = "auto"
 
+    # HyDE: allow hypothetical answer for retrieval (only used when LLM is available)
+    hyde_enabled: bool = True
+
+    # Example question search: hybrid retrieval using embedded example questions
+    enable_example_question_search: bool = True
+    example_question_search_weight: float = 0.3  # weight for example question score in fusion (0.0-1.0)
+
+    # PII anonymization: replace sensitive data (names, addresses, etc.) with placeholders
+    enable_pii_anonymization: bool = True
+
+    # Translation indexing: store translated versions of snippets for cross-language retrieval
+    enable_translation_indexing: bool = True
+    translation_languages: str = "en,de,fr,it"  # comma-separated list of target languages
+
+    # Chunking: snippets longer than this (chars) are split; overlap between chunks
+    chunk_size: int = 1500
+    chunk_overlap: int = 200
+
+    # Auth: JWT and initial admin (for seeding)
+    jwt_secret: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_seconds: int = 86400  # 24h
+    admin_email: str | None = None
+    admin_password: str | None = None
+    database_url: str = "data/users.db"
+
     model_config = {"env_file": _BACKEND_DIR / ".env", "extra": "ignore"}
+
+    def get_translation_languages(self) -> list[str]:
+        """Return translation_languages as a list."""
+        if not self.translation_languages:
+            return []
+        return [lang.strip().lower() for lang in self.translation_languages.split(",") if lang.strip()]
 
 
 def get_settings() -> Settings:

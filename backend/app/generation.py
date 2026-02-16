@@ -39,18 +39,66 @@ def _resolve_provider(settings: Settings) -> str:
     return "ollama"
 
 
-def generate_answer(question: str, snippet_texts: list[str], settings: Settings | None = None) -> str:
-    """Generate an answer from question and retrieved snippets using Azure OpenAI or Ollama. Fallback to top snippet if no LLM."""
+def _parse_answer_and_sections(raw: str, num_sources: int) -> tuple[str, list[str | None]]:
+    """Extract answer and optional section labels from LLM output. Expects 'SECTIONS:' followed by one line per source."""
+    raw = (raw or "").strip()
+    sections: list[str | None] = []
+    answer = raw
+    marker = "SECTIONS:"
+    idx = raw.upper().find(marker.upper())
+    if idx >= 0:
+        answer = raw[:idx].strip()
+        rest = raw[idx + len(marker) :].strip()
+        lines = [line.strip() for line in rest.split("\n") if line.strip()][:num_sources]
+        sections = [lines[i] if i < len(lines) else None for i in range(num_sources)]
+    else:
+        sections = [None] * num_sources
+    return answer, sections
+
+
+def _closeness_system_instruction(closeness: float) -> str:
+    """Return system instruction fragment for answer_closeness (0=free, 1=word-for-word)."""
+    if closeness < 0.3:
+        return (
+            "Use the provided snippets as inspiration only. You may answer freely and rephrase; "
+            "do not restrict yourself to the exact wording."
+        )
+    if closeness > 0.7:
+        return (
+            "Your answer MUST stay as close as possible to the exact wording of the snippets. "
+            "Prefer quoting and paraphrasing; do not add new formulations or information not in the snippets."
+        )
+    return (
+        "Formulate your answer closely based on the snippets; light rephrasing is allowed. "
+        "Do not add information that is not present in the snippets."
+    )
+
+
+def generate_answer(
+    question: str,
+    snippet_texts: list[str],
+    settings: Settings | None = None,
+    answer_closeness: float = 0.5,
+) -> tuple[str, list[str | None]]:
+    """Generate an answer and per-source section labels from question and retrieved snippets.
+    Returns (answer_text, section_labels). section_labels[i] is a short section/context for snippet i, or None.
+    answer_closeness: 0=free, 1=stick to snippet wording."""
     settings = settings or get_settings()
     provider = _resolve_provider(settings)
+    num_sources = len(snippet_texts)
 
     if not snippet_texts:
-        return "No relevant snippets found."
+        return "No relevant snippets found.", []
 
     snippets_block = "\n\n".join(f"[{i+1}] {t}" for i, t in enumerate(snippet_texts))
+    closeness_instruction = _closeness_system_instruction(answer_closeness)
     system = (
-        "Answer the user's question using ONLY the provided numbered snippets. "
-        "Be concise. Do not invent information. If the snippets do not contain the answer, say so."
+        "Answer the user's question using the provided numbered snippets. "
+        f"{closeness_instruction} "
+        "Be concise. If the snippets do not contain the answer, say so. "
+        "After your answer, on a new line write exactly SECTIONS: and then one line per snippet in order (snippet 1, 2, ...): "
+        "a very short section or context for each snippet (e.g. 'Scrum Roles - Product Owner' or 'Definition of Done'). "
+        "One line per snippet, no numbers or bullets."
     )
     user = f"Question: {question}\n\nSnippets:\n{snippets_block}"
 
@@ -61,14 +109,13 @@ def generate_answer(question: str, snippet_texts: list[str], settings: Settings 
                 r = client.chat.completions.create(
                     model=settings.azure_openai_chat_deployment,
                     messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                    max_tokens=500,
+                    max_tokens=600,
                 )
                 if r.choices and r.choices[0].message.content:
-                    return r.choices[0].message.content.strip()
+                    return _parse_answer_and_sections(r.choices[0].message.content.strip(), num_sources)
             except Exception as e:
                 logger.warning("Azure OpenAI call failed: %s", e)
-        # fallback
-        return snippet_texts[0]
+        return snippet_texts[0], [None] * num_sources
 
     if provider == "ollama":
         client = _client_ollama(settings)
@@ -76,12 +123,209 @@ def generate_answer(question: str, snippet_texts: list[str], settings: Settings 
             r = client.chat.completions.create(
                 model=settings.ollama_chat_model,
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                max_tokens=500,
+                max_tokens=600,
+            )
+            if r.choices and r.choices[0].message.content:
+                return _parse_answer_and_sections(r.choices[0].message.content.strip(), num_sources)
+        except Exception as e:
+            logger.warning("Ollama call failed (is Ollama running?): %s", e)
+
+    return snippet_texts[0], [None] * num_sources
+
+
+def refine_answer(
+    original_question: str,
+    original_answer: str,
+    refinement_prompt: str,
+    snippet_texts: list[str],
+    settings: Settings | None = None,
+    answer_closeness: float = 0.5,
+) -> str:
+    """Refine an existing answer based on user feedback and selected snippets.
+    Returns the refined answer text."""
+    settings = settings or get_settings()
+    provider = _resolve_provider(settings)
+
+    if not snippet_texts:
+        return original_answer  # Can't refine without context
+
+    snippets_block = "\n\n".join(f"[{i+1}] {t}" for i, t in enumerate(snippet_texts))
+    closeness_instruction = _closeness_system_instruction(answer_closeness)
+
+    system = (
+        "You are refining an existing answer based on user feedback. "
+        f"{closeness_instruction} "
+        "Use the provided snippets as context. Be concise and helpful. "
+        "Produce only the improved answer without any explanations or meta-commentary."
+    )
+    user = (
+        f"Original Question: {original_question}\n\n"
+        f"Original Answer: {original_answer}\n\n"
+        f"User's refinement request: {refinement_prompt}\n\n"
+        f"Context snippets to use:\n{snippets_block}\n\n"
+        "Please provide the refined answer:"
+    )
+
+    if provider == "azure":
+        client = _client_azure(settings)
+        if client:
+            try:
+                r = client.chat.completions.create(
+                    model=settings.azure_openai_chat_deployment,
+                    messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                    max_tokens=800,
+                )
+                if r.choices and r.choices[0].message.content:
+                    return r.choices[0].message.content.strip()
+            except Exception as e:
+                logger.warning("Azure OpenAI refine call failed: %s", e)
+        return original_answer
+
+    if provider == "ollama":
+        client = _client_ollama(settings)
+        try:
+            r = client.chat.completions.create(
+                model=settings.ollama_chat_model,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                max_tokens=800,
             )
             if r.choices and r.choices[0].message.content:
                 return r.choices[0].message.content.strip()
         except Exception as e:
-            logger.warning("Ollama call failed (is Ollama running?): %s", e)
+            logger.warning("Ollama refine call failed: %s", e)
 
-    # no LLM or both failed: return top snippet
-    return snippet_texts[0]
+    return original_answer
+
+
+def generate_hypothetical_answer(question: str, settings: Settings | None = None) -> str:
+    """Generate a short hypothetical answer (1-2 sentences) for HyDE retrieval. Returns empty string if no LLM."""
+    settings = settings or get_settings()
+    provider = _resolve_provider(settings)
+    if provider == "none":
+        return ""
+
+    prompt = (
+        "Answer the following question in 1-2 short sentences, without using any external sources. "
+        "Be concise and direct.\n\nQuestion: "
+    ) + question
+
+    if provider == "azure":
+        client = _client_azure(settings)
+        if client:
+            try:
+                r = client.chat.completions.create(
+                    model=settings.azure_openai_chat_deployment,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=150,
+                )
+                if r.choices and r.choices[0].message.content:
+                    return (r.choices[0].message.content or "").strip()
+            except Exception as e:
+                logger.warning("HyDE hypothetical answer (Azure) failed: %s", e)
+        return ""
+
+    if provider == "ollama":
+        client = _client_ollama(settings)
+        try:
+            r = client.chat.completions.create(
+                model=settings.ollama_chat_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=150,
+            )
+            if r.choices and r.choices[0].message.content:
+                return (r.choices[0].message.content or "").strip()
+        except Exception as e:
+            logger.warning("HyDE hypothetical answer (Ollama) failed: %s", e)
+
+    return ""
+
+
+def generate_example_question(
+    snippet_text: str,
+    snippet_title: str | None = None,
+    settings: Settings | None = None,
+) -> str:
+    """Generate an example question that this snippet could answer (reverse HyDE).
+    
+    This is useful for hybrid retrieval - by embedding example questions,
+    we can match user questions directly against them.
+    
+    Args:
+        snippet_text: The snippet content to generate a question for
+        snippet_title: Optional title for additional context
+        settings: App settings
+    
+    Returns:
+        A question string, or empty string if LLM is unavailable
+    """
+    settings = settings or get_settings()
+    provider = _resolve_provider(settings)
+    if provider == "none":
+        return ""
+    
+    # Truncate text if too long to fit in context
+    max_text_len = 2000
+    text_for_prompt = snippet_text[:max_text_len]
+    if len(snippet_text) > max_text_len:
+        text_for_prompt += "..."
+    
+    title_context = f" titled '{snippet_title}'" if snippet_title else ""
+    
+    system = (
+        "You generate example questions for a knowledge base. "
+        "Given a text snippet, generate ONE clear, natural question that this snippet would answer. "
+        "The question should be something a user might actually ask. "
+        "Be concise - output only the question, no explanations or prefixes."
+    )
+    
+    user = (
+        f"Generate one example question that the following snippet{title_context} would answer:\n\n"
+        f"---\n{text_for_prompt}\n---\n\n"
+        "Question:"
+    )
+    
+    if provider == "azure":
+        client = _client_azure(settings)
+        if client:
+            try:
+                r = client.chat.completions.create(
+                    model=settings.azure_openai_chat_deployment,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user},
+                    ],
+                    max_tokens=100,
+                )
+                if r.choices and r.choices[0].message.content:
+                    question = (r.choices[0].message.content or "").strip()
+                    # Clean up common prefixes
+                    for prefix in ["Question:", "Q:", "Example question:"]:
+                        if question.lower().startswith(prefix.lower()):
+                            question = question[len(prefix):].strip()
+                    return question
+            except Exception as e:
+                logger.warning("Generate example question (Azure) failed: %s", e)
+        return ""
+    
+    if provider == "ollama":
+        client = _client_ollama(settings)
+        try:
+            r = client.chat.completions.create(
+                model=settings.ollama_chat_model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                max_tokens=100,
+            )
+            if r.choices and r.choices[0].message.content:
+                question = (r.choices[0].message.content or "").strip()
+                # Clean up common prefixes
+                for prefix in ["Question:", "Q:", "Example question:"]:
+                    if question.lower().startswith(prefix.lower()):
+                        question = question[len(prefix):].strip()
+                return question
+        except Exception as e:
+            logger.warning("Generate example question (Ollama) failed: %s", e)
+    
+    return ""

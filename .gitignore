@@ -68,3 +68,6 @@ htmlcov/
 
 # Hugging Face (optional)
 .cache/
+data/
+/test-data/
+.cursor/
