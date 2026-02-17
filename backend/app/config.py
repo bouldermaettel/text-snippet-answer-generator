@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     chunk_size: int = 1500
     chunk_overlap: int = 200
 
+    # CORS: comma-separated origins, "*" for all, or empty to auto-detect
+    # In single-container mode (frontend served from same origin) CORS is not needed.
+    allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # Production mode flag (set to "production" in deployment)
+    environment: str = "development"
+
     # Auth: JWT and initial admin (for seeding)
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

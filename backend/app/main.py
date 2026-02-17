@@ -1,14 +1,19 @@
 """FastAPI app: /api/ask, /api/snippets, /api/auth, /api/users."""
+import io
 import logging
+import os
 import re
 import shutil
+import tarfile
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, File, Form, FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from .auth import authenticate_user, create_access_token, get_current_admin, get_current_user
 from .config import get_settings
@@ -63,21 +68,67 @@ def _seed_admin_if_needed() -> None:
     logging.info("Seeded initial admin user: %s", email)
 
 
+def _configure_logging() -> None:
+    """Set up structured JSON logging in production for Azure Monitor integration."""
+    settings = get_settings()
+    level = os.getenv("LOG_LEVEL", "INFO").upper()
+    if settings.environment.lower() == "production":
+        import json as _json
+
+        class _JsonFormatter(logging.Formatter):
+            def format(self, record: logging.LogRecord) -> str:
+                log_record = {
+                    "timestamp": self.formatTime(record, self.datefmt),
+                    "level": record.levelname,
+                    "logger": record.name,
+                    "message": record.getMessage(),
+                }
+                if record.exc_info and record.exc_info[1]:
+                    log_record["exception"] = self.formatException(record.exc_info)
+                return _json.dumps(log_record)
+
+        handler = logging.StreamHandler()
+        handler.setFormatter(_JsonFormatter())
+        logging.root.handlers.clear()
+        logging.root.addHandler(handler)
+        logging.root.setLevel(level)
+    else:
+        logging.basicConfig(level=level, format="%(levelname)s: %(name)s: %(message)s")
+
+
+def _enforce_jwt_secret() -> None:
+    """Raise if JWT_SECRET is still the default in production."""
+    settings = get_settings()
+    if settings.environment.lower() == "production" and settings.jwt_secret == "change-me-in-production":
+        raise RuntimeError(
+            "FATAL: JWT_SECRET must be set to a secure value in production. "
+            "Set the JWT_SECRET environment variable."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _enforce_jwt_secret()
+    _configure_logging()
     init_db()
     _seed_admin_if_needed()
     yield
 
 
 app = FastAPI(title="RAG Snippet Answer API", lifespan=lifespan)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+# CORS: configurable via ALLOWED_ORIGINS env var.
+# In single-container production (frontend served from same origin) this is a no-op.
+_settings_cors = get_settings()
+_origins = [o.strip() for o in _settings_cors.allowed_origins.split(",") if o.strip()]
+if _origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
@@ -535,6 +586,151 @@ def delete_user_endpoint(
     return {"ok": True}
 
 
+# ---------------------------------------------------------------------------
+# Admin: Backup & Restore
+# ---------------------------------------------------------------------------
+
+@app.get("/api/admin/backup")
+def backup_data(
+    current_user: Annotated[dict, Depends(get_current_admin)],
+):
+    """Download a .tar.gz snapshot of the entire data/ directory (admin only).
+
+    Includes ChromaDB, SQLite user DB, and uploaded documents.
+    """
+    settings = get_settings()
+    data_dir = Path(settings.chroma_persist_dir).parent
+    if not data_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Data directory not found")
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        tar.add(str(data_dir), arcname="data")
+    buf.seek(0)
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    filename = f"backup-{ts}.tar.gz"
+    return StreamingResponse(
+        buf,
+        media_type="application/gzip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.post("/api/admin/restore")
+def restore_data(
+    current_user: Annotated[dict, Depends(get_current_admin)],
+    file: UploadFile = File(...),
+):
+    """Upload a .tar.gz backup to replace the data/ directory (admin only).
+
+    After extraction the ChromaDB client is reconnected and the SQLite
+    database is re-initialised.
+
+    The archive should contain a top-level ``data/`` folder (as created by
+    the backup endpoint or ``tar czf backup.tar.gz data``).
+    """
+    if not file.filename or not file.filename.endswith((".tar.gz", ".tgz")):
+        raise HTTPException(status_code=400, detail="File must be a .tar.gz archive")
+
+    settings = get_settings()
+    data_dir = Path(settings.chroma_persist_dir).resolve().parent  # e.g. /app/data
+
+    # Reset ChromaDB so it releases file handles before we overwrite
+    from .store import reset_client
+    reset_client()
+
+    content = file.file.read()
+    buf = io.BytesIO(content)
+
+    try:
+        with tarfile.open(fileobj=buf, mode="r:gz") as tar:
+            # Security: reject absolute paths and path traversal
+            for member in tar.getmembers():
+                if member.name.startswith("/") or ".." in member.name:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Unsafe path in archive: {member.name}",
+                    )
+
+            # Extract to a temp directory first, then move into place
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tar.extractall(path=tmpdir)
+
+                # Find the extracted data dir (could be "data" or just files)
+                extracted = Path(tmpdir) / "data"
+                if not extracted.is_dir():
+                    # Fallback: maybe the tar root IS the data contents
+                    extracted = Path(tmpdir)
+
+                # Remove existing data and move extracted in
+                if data_dir.is_dir():
+                    shutil.rmtree(data_dir)
+                shutil.copytree(str(extracted), str(data_dir))
+
+    except tarfile.TarError as e:
+        # Ensure data dir exists even if restore fails
+        data_dir.mkdir(parents=True, exist_ok=True)
+        raise HTTPException(status_code=400, detail=f"Invalid tar archive: {e}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        logging.exception("Restore failed")
+        raise HTTPException(status_code=500, detail=f"Restore failed: {e}")
+
+    # Re-initialise SQLite (creates tables if needed) and seed admin
+    init_db()
+    _seed_admin_if_needed()
+
+    return {"ok": True, "message": "Data restored successfully. ChromaDB will reconnect on next request."}
+
+
 @app.get("/health")
 def health():
+    """Basic liveness check."""
     return {"status": "ok"}
+
+
+
+@app.get("/health/ready")
+def health_ready():
+    """Readiness check: verifies ChromaDB and SQLite are accessible."""
+    errors: list[str] = []
+    # Check SQLite
+    try:
+        from .user_store import _get_connection
+        conn = _get_connection()
+        conn.execute("SELECT 1")
+        conn.close()
+    except Exception as e:
+        errors.append(f"sqlite: {e}")
+    # Check ChromaDB
+    try:
+        from .store import _get_collection
+        coll = _get_collection()
+        coll.count()
+    except Exception as e:
+        errors.append(f"chromadb: {e}")
+    if errors:
+        raise HTTPException(status_code=503, detail={"status": "unhealthy", "errors": errors})
+    return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# Serve built frontend (SPA) in production
+# ---------------------------------------------------------------------------
+_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+if _STATIC_DIR.is_dir():
+    # Serve static assets (JS, CSS, images, etc.)
+    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets"), name="static-assets")
+
+    @app.get("/{full_path:path}")
+    def serve_spa(full_path: str):
+        """Serve the SPA index.html for any non-API route (client-side routing)."""
+        file_path = _STATIC_DIR / full_path
+        if full_path and file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(_STATIC_DIR / "index.html")

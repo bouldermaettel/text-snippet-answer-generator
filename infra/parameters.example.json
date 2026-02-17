@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "value": "snippet-answer"
+    },
+    "containerImage": {
+      "value": "<your-acr>.azurecr.io/snippet-answer:latest"
+    },
+    "jwtSecret": {
+      "value": "/SYrm8UcFBLR9vqxtRLR0w53a5kPEs87D9JwLL5wDxI="
+    },
+    "azureOpenAiEndpoint": {
+      "value": "https://<your-openai-resource>.openai.azure.com/"
+    },
+    "azureOpenAiApiKey": {
+      "value": "<your-azure-openai-api-key>"
+    },
+    "azureOpenAiChatDeployment": {
+      "value": "gpt-4-32k"
+    },
+    "azureOpenAiEmbeddingDeployment": {
+      "value": "text-embedding-3-small"
+    },
+    "azureOpenAiApiVersion": {
+      "value": "2024-12-01-preview"
+    },
+    "adminEmail": {
+      "value": "admin@example.com"
+    },
+    "adminPassword": {
+      "value": "<your-admin-password>"
+    },
+    "cpuCores": {
+      "value": "1.0"
+    },
+    "memorySize": {
+      "value": "2Gi"
+    }
+  }
+}

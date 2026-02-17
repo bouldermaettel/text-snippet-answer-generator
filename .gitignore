@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 *.pem
+infra/parameters.json
 
 # Python
 .venv/

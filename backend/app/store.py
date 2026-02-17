@@ -36,6 +36,16 @@ def _get_client() -> chromadb.PersistentClient:
     return _client
 
 
+def reset_client() -> None:
+    """Reset the ChromaDB client singleton so it reconnects on next access.
+
+    Call this after restoring data from a backup so the client picks up
+    the new database files.
+    """
+    global _client
+    _client = None
+
+
 def _get_collection():
     return _get_client().get_or_create_collection(
         _collection_name,

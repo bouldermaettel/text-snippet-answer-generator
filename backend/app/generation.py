@@ -93,14 +93,24 @@ def generate_answer(
     snippets_block = "\n\n".join(f"[{i+1}] {t}" for i, t in enumerate(snippet_texts))
     closeness_instruction = _closeness_system_instruction(answer_closeness)
     system = (
+        "You are a helpful assistant that writes polite, casual email replies in the same language as the user's input. "
         "Answer the user's question using the provided numbered snippets. "
         f"{closeness_instruction} "
-        "Be concise. If the snippets do not contain the answer, say so. "
-        "After your answer, on a new line write exactly SECTIONS: and then one line per snippet in order (snippet 1, 2, ...): "
+        "IMPORTANT formatting rules:\n"
+        "1. Try to extract the sender's name from the input text. First look for a 'Von:'/'From:' line or email signature. "
+        "If not found, fall back to the name used in the greeting/salutation of the input (e.g. 'Lieber Herr Meier' → the sender signed or was addressed as 'Meier'). "
+        "Use the LAST NAME with a formal title: 'Sehr geehrter Herr [Nachname],' / 'Sehr geehrte Frau [Nachname],' "
+        "(or 'Dear Mr [Last name],' / 'Dear Ms [Last name],' in English). "
+        "If no name can be extracted at all, use a generic greeting like 'Sehr geehrte Damen und Herren,' or 'Dear Sir or Madam,'.\n"
+        "2. Write the body in a polite, friendly, and casual tone — as if replying to a colleague. "
+        "Be concise but helpful. The answer should be ready to copy-paste as an email response.\n"
+        "3. End with a friendly closing (e.g. 'Viele Grüße' or 'Best regards' depending on the language).\n"
+        "4. If the snippets do not contain the answer, politely say so.\n"
+        "5. After your complete email, on a new line write exactly SECTIONS: and then one line per snippet in order (snippet 1, 2, ...): "
         "a very short section or context for each snippet (e.g. 'Scrum Roles - Product Owner' or 'Definition of Done'). "
         "One line per snippet, no numbers or bullets."
     )
-    user = f"Question: {question}\n\nSnippets:\n{snippets_block}"
+    user = f"Question / incoming message:\n{question}\n\nSnippets:\n{snippets_block}"
 
     if provider == "azure":
         client = _client_azure(settings)
@@ -109,7 +119,7 @@ def generate_answer(
                 r = client.chat.completions.create(
                     model=settings.azure_openai_chat_deployment,
                     messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                    max_tokens=600,
+                    max_tokens=800,
                 )
                 if r.choices and r.choices[0].message.content:
                     return _parse_answer_and_sections(r.choices[0].message.content.strip(), num_sources)
@@ -123,7 +133,7 @@ def generate_answer(
             r = client.chat.completions.create(
                 model=settings.ollama_chat_model,
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                max_tokens=600,
+                max_tokens=800,
             )
             if r.choices and r.choices[0].message.content:
                 return _parse_answer_and_sections(r.choices[0].message.content.strip(), num_sources)
@@ -153,17 +163,19 @@ def refine_answer(
     closeness_instruction = _closeness_system_instruction(answer_closeness)
 
     system = (
-        "You are refining an existing answer based on user feedback. "
+        "You are refining an existing email reply based on user feedback. "
         f"{closeness_instruction} "
-        "Use the provided snippets as context. Be concise and helpful. "
-        "Produce only the improved answer without any explanations or meta-commentary."
+        "Use the provided snippets as context. "
+        "Keep the polite, casual email tone of the original answer. "
+        "The refined answer must remain a ready-to-paste email reply with greeting and closing. "
+        "Produce only the improved email reply without any explanations or meta-commentary."
     )
     user = (
-        f"Original Question: {original_question}\n\n"
-        f"Original Answer: {original_answer}\n\n"
+        f"Original Question / incoming message: {original_question}\n\n"
+        f"Original Email Reply: {original_answer}\n\n"
         f"User's refinement request: {refinement_prompt}\n\n"
         f"Context snippets to use:\n{snippets_block}\n\n"
-        "Please provide the refined answer:"
+        "Please provide the refined email reply:"
     )
 
     if provider == "azure":

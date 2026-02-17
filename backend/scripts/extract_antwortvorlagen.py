@@ -27,10 +27,11 @@ from docx.text.paragraph import Paragraph
 
 # Language markers used in the document (including English)
 LANGUAGE_MARKERS = {"DE", "FR", "IT", "EN"}
-# Match language markers at start of line, optionally followed by : or whitespace
-LANGUAGE_PATTERN = re.compile(r"^(DE|FR|IT|EN)\s*[:|\s]?\s*", re.IGNORECASE)
+# Match language markers at start of line, optionally followed by : or whitespace.
+# IMPORTANT: case-sensitive + word boundary to avoid matching "Dear"→DE, "Frage"→FR, "Dell'"→DE, etc.
+LANGUAGE_PATTERN = re.compile(r"^(DE|FR|IT|EN)\b\s*[:|\s]?\s*")
 # Match standalone language markers (just "DE", "FR", "IT", "EN" as full paragraph)
-STANDALONE_LANG_PATTERN = re.compile(r"^(DE|FR|IT|EN)\s*:?\s*$", re.IGNORECASE)
+STANDALONE_LANG_PATTERN = re.compile(r"^(DE|FR|IT|EN)\s*:?\s*$")
 # File reference pattern (e.g., <<filename.docx>>)
 FILE_REF_PATTERN = re.compile(r"^<<.+>>\s*$")
 # Date pattern (e.g., "Montag, 31. März 2025" or "Mittwoch, 26. März 2025")

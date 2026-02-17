@@ -1,0 +1,30 @@
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Data - not excluded; baked into image as seed data
+# backend/data/
+# data/
+
+# Environment files with secrets
+backend/.env
+.env
+
+# IDE / OS
+.git/
+.cursor/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Misc
+instr.txt
+*.md
