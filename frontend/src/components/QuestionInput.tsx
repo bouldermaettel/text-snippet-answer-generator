@@ -15,12 +15,18 @@ export function QuestionInput({ value, onChange, onSubmit, loading, disabled }: 
         onSubmit();
       }}
     >
-      <input
-        type="text"
+      <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (value.trim() && !disabled && !loading) onSubmit();
+          }
+        }}
         placeholder="Ask a question…"
-        className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
+        rows={1}
+        className="min-w-0 flex-1 resize-none rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
         disabled={disabled || loading}
         aria-label="Question"
       />

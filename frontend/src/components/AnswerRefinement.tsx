@@ -24,13 +24,23 @@ export function AnswerRefinement({ onRefine, loading, disabled }: Props) {
         Refine this answer
       </label>
       <div className="flex gap-2">
-        <input
-          type="text"
+        <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              const trimmed = prompt.trim();
+              if (trimmed && !loading && !disabled) {
+                onRefine(trimmed);
+                setPrompt("");
+              }
+            }
+          }}
           placeholder="e.g., Make it shorter, add more detail about X, use a friendlier tone..."
+          rows={1}
           disabled={loading || disabled}
-          className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
+          className="flex-1 resize-none rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
         />
         <button
           type="submit"
