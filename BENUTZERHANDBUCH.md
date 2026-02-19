@@ -23,7 +23,7 @@
 
 ## Überblick
 
-**Snippet Answer** ist ein KI-gestütztes Frage-Antwort-System. Es basiert auf dem Prinzip der sogenannten *Retrieval-Augmented Generation* (RAG): Sie pflegen eine Sammlung von Textbausteinen (Snippets), stellen Fragen in natürlicher Sprache und erhalten passende Antworten, die direkt aus Ihren Snippets generiert werden – inklusive Quellenangaben und Konfidenzwerten.
+**Snippet Answer** ist ein KI-gestütztes Frage-Antwort-System. Es basiert auf dem Prinzip der sogenannten *Retrieval-Augmented Generation* (RAG): Du pflegst eine Sammlung von Textbausteinen (Snippets), stellst Fragen in natürlicher Sprache und erhältst passende Antworten, die direkt aus deinen Snippets generiert werden – inklusive Quellenangaben und Konfidenzwerten.
 
 **Typischer Ablauf:**
 
@@ -38,72 +38,72 @@
 
 ### Registrierung
 
-Beim ersten Besuch der Anwendung erscheint die Anmeldeseite. Falls Sie noch kein Konto haben, wechseln Sie auf **Registrieren** und geben Sie Ihre E-Mail-Adresse sowie ein Passwort ein.
+Beim ersten Besuch der Anwendung erscheint die Anmeldeseite. Falls du noch kein Konto hast, wechsle auf **Registrieren** und gib deine E-Mail-Adresse sowie ein Passwort ein.
 
-> **Hinweis:** Nach der Registrierung hat Ihr Konto den Status *ausstehend*. Ein Administrator muss Ihr Konto erst freischalten, bevor Sie sich anmelden können.
+> **Hinweis:** Nach der Registrierung hat dein Konto den Status *ausstehend*. Ein Administrator muss dein Konto erst freischalten, bevor du dich anmelden kannst.
 
 ### Anmeldung
 
-Geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein und klicken Sie auf **Anmelden**. Nach erfolgreicher Anmeldung gelangen Sie zur Hauptansicht der Anwendung.
+Gib deine E-Mail-Adresse und dein Passwort ein und klicke auf **Anmelden**. Nach erfolgreicher Anmeldung gelangst du zur Hauptansicht der Anwendung.
 
 ---
 
 ## Die Sammlung (Collection)
 
-Die Sammlung ist der zentrale Ort, an dem alle Ihre Textbausteine (Snippets) verwaltet werden. Sie erreichen die Sammlung über den Menüpunkt **Collection** in der Seitenleiste.
+Die Sammlung ist der zentrale Ort, an dem alle deine Textbausteine (Snippets) verwaltet werden. Du erreichst die Sammlung über den Menüpunkt **Collection** in der Seitenleiste.
 
 ### Snippets anzeigen und filtern
 
-In der Sammlungsansicht sehen Sie alle vorhandenen Snippets als Karten. Um gezielt nach Snippets zu suchen, stehen Ihnen mehrere Filtermöglichkeiten zur Verfügung:
+In der Sammlungsansicht siehst du alle vorhandenen Snippets als Karten. Um gezielt nach Snippets zu suchen, stehen dir mehrere Filtermöglichkeiten zur Verfügung:
 
 | Filter | Beschreibung |
 |--------|-------------|
-| **Gruppe** | Wählen Sie in der Seitenleiste eine bestimmte Gruppe aus, um nur deren Snippets anzuzeigen. |
-| **Sprache** | Filtern Sie nach Sprache (Deutsch, Englisch, Französisch, Italienisch). |
-| **Generierte Übersetzungen** | Aktivieren Sie „Show generated translations", um auch automatisch übersetzte Snippets anzuzeigen. |
-| **Textsuche** | Geben Sie einen Suchbegriff ein, um Snippets nach Titel oder Inhalt zu durchsuchen. |
+| **Gruppe** | Wähle in der Seitenleiste eine bestimmte Gruppe aus, um nur deren Snippets anzuzeigen. |
+| **Sprache** | Filtere nach Sprache (Deutsch, Englisch, Französisch, Italienisch). |
+| **Generierte Übersetzungen** | Aktiviere „Show generated translations", um auch automatisch übersetzte Snippets anzuzeigen. |
+| **Textsuche** | Gib einen Suchbegriff ein, um Snippets nach Titel oder Inhalt zu durchsuchen. |
 
 ### Snippet manuell hinzufügen
 
-1. Klicken Sie in der Sammlungsansicht auf **Add snippet**.
-2. Füllen Sie das Formular aus:
+1. Klicke in der Sammlungsansicht auf **Add snippet**.
+2. Fülle das Formular aus:
    - **Titel** – Ein aussagekräftiger Name für das Snippet.
-   - **Gruppe** – Wählen Sie eine bestehende Gruppe aus oder erstellen Sie eine neue, indem Sie einen neuen Namen eintippen.
-   - **Sprache** – Wählen Sie die Sprache des Textes (Auto, Deutsch, Englisch, Französisch, Italienisch).
+   - **Gruppe** – Wähle eine bestehende Gruppe aus oder erstelle eine neue, indem du einen neuen Namen eintippst.
+   - **Sprache** – Wähle die Sprache des Textes (Auto, Deutsch, Englisch, Französisch, Italienisch).
    - **Text** – Der eigentliche Textinhalt des Snippets.
-3. Optional können Sie unter **Erweitert** zusätzliche Metadaten angeben:
+3. Optional kannst du unter **Erweitert** zusätzliche Metadaten angeben:
    - **Überschrift** – Eine Überschrift oder Abschnittsbezeichnung.
    - **Kategorie** – Eine inhaltliche Kategorie.
    - **Verknüpfte Snippets** – Kommagetrennte IDs von zusammengehörigen Snippets (z. B. Übersetzungen).
-   - **PII anonymisieren** – Aktivieren Sie diese Option, um personenbezogene Daten vor dem Speichern automatisch zu anonymisieren.
-4. Klicken Sie auf **Add snippet**, um das Snippet zur Sammlung hinzuzufügen.
+   - **PII anonymisieren** – Aktiviere diese Option, um personenbezogene Daten vor dem Speichern automatisch zu anonymisieren.
+4. Klicke auf **Add snippet**, um das Snippet zur Sammlung hinzuzufügen.
 
 ### Dateien hochladen
 
-Anstatt Snippets manuell einzugeben, können Sie auch Dateien importieren:
+Anstatt Snippets manuell einzugeben, kannst du auch Dateien importieren:
 
-1. Klicken Sie auf **Add snippet** und wechseln Sie zum Tab **Upload**.
-2. Wählen Sie eine oder mehrere Dateien aus. Unterstützte Formate:
+1. Klicke auf **Add snippet** und wechsle zum Tab **Upload**.
+2. Wähle eine oder mehrere Dateien aus. Unterstützte Formate:
    - `.txt` (Textdateien)
    - `.docx` (Word-Dokumente)
    - `.pdf` (PDF-Dokumente)
-3. Optional können Sie einen **Ordner** auswählen – der Ordnername wird dann als Gruppenname verwendet.
-4. Optional können Sie **PII anonymisieren** aktivieren.
+3. Optional kannst du einen **Ordner** auswählen – der Ordnername wird dann als Gruppenname verwendet.
+4. Optional kannst du **PII anonymisieren** aktivieren.
 5. Jede hochgeladene Datei wird als ein eigenes Snippet angelegt. Bei PDF- und Word-Dateien wird der Originaltext extrahiert und das Originaldokument gespeichert, sodass es später über „View original document" abgerufen werden kann.
 
 ### Snippet bearbeiten
 
-1. Klicken Sie auf einer Snippet-Karte auf **Edit**.
-2. Im Bearbeitungsdialog können Sie alle Felder ändern:
+1. Klicke auf einer Snippet-Karte auf **Edit**.
+2. Im Bearbeitungsdialog kannst du alle Felder ändern:
    - Titel, Gruppe, Sprache, Text
    - Erweiterte Metadaten (Überschrift, Kategorie, verknüpfte Snippets)
-   - **Beispielfragen** – Geben Sie hier Fragen ein (eine pro Zeile), die typischerweise zu diesem Snippet gestellt werden. Diese verbessern die Suchqualität bei der Fragebeantwortung.
-3. Klicken Sie auf **Save**, um die Änderungen zu speichern.
+   - **Beispielfragen** – Gib hier Fragen ein (eine pro Zeile), die typischerweise zu diesem Snippet gestellt werden. Diese verbessern die Suchqualität bei der Fragebeantwortung.
+3. Klicke auf **Save**, um die Änderungen zu speichern.
 
 ### Snippet löschen
 
-1. Klicken Sie auf einer Snippet-Karte auf **Delete**.
-2. Bestätigen Sie die Löschung im angezeigten Dialog.
+1. Klicke auf einer Snippet-Karte auf **Delete**.
+2. Bestätige die Löschung im angezeigten Dialog.
 
 > **Achtung:** Gelöschte Snippets können nicht wiederhergestellt werden. Auch eventuell gespeicherte Originaldokumente werden mit entfernt.
 
@@ -111,22 +111,22 @@ Anstatt Snippets manuell einzugeben, können Sie auch Dateien importieren:
 
 ## Fragen stellen (Ask)
 
-Die Kernfunktion der Anwendung. Wechseln Sie über die Seitenleiste zum Bereich **Ask**.
+Die Kernfunktion der Anwendung. Wechsle über die Seitenleiste zum Bereich **Ask**.
 
-1. Geben Sie Ihre Frage in das Textfeld ein.
-2. Klicken Sie auf **Ask** oder drücken Sie die **Eingabetaste**.
+1. Gib deine Frage in das Textfeld ein.
+2. Klicke auf **Ask** oder drücke die **Eingabetaste**.
 
-Die Anwendung durchsucht Ihre Snippet-Sammlung, findet die relevantesten Textbausteine und generiert eine Antwort.
+Die Anwendung durchsucht deine Snippet-Sammlung, findet die relevantesten Textbausteine und generiert eine Antwort.
 
 ### Suchbereich festlegen
 
-Oberhalb des Eingabefeldes können Sie den Suchbereich einschränken:
+Oberhalb des Eingabefeldes kannst du den Suchbereich einschränken:
 
 | Option | Beschreibung |
 |--------|-------------|
 | **All snippets** | Es wird in der gesamten Sammlung gesucht. |
-| **Selected groups** | Wählen Sie eine oder mehrere Gruppen aus, in denen gesucht werden soll. Eine Suchfunktion hilft beim Finden der gewünschten Gruppen. |
-| **Selected snippets** | Wählen Sie gezielt einzelne Snippets aus, auf die sich die Suche beschränken soll. |
+| **Selected groups** | Wähle eine oder mehrere Gruppen aus, in denen gesucht werden soll. Eine Suchfunktion hilft beim Finden der gewünschten Gruppen. |
+| **Selected snippets** | Wähle gezielt einzelne Snippets aus, auf die sich die Suche beschränken soll. |
 
 ### Erweiterte Optionen
 
@@ -139,7 +139,7 @@ Oberhalb des Eingabefeldes können Sie den Suchbereich einschränken:
 
 ### Antwort und Quellen
 
-Nach dem Absenden der Frage erhalten Sie:
+Nach dem Absenden der Frage erhältst du:
 
 - **Antwort** – Der generierte Antworttext.
 - **Antwort-Konfidenz** – Ein Prozentwert, der angibt, wie sicher das System bezüglich der Antwort ist:
@@ -152,18 +152,18 @@ Nach dem Absenden der Frage erhalten Sie:
 
 ## Antwort verfeinern (Refine)
 
-Wenn die generierte Antwort nicht Ihren Vorstellungen entspricht, können Sie sie verfeinern:
+Wenn die generierte Antwort nicht deinen Vorstellungen entspricht, kannst du sie verfeinern:
 
-1. Unterhalb der Antwort finden Sie das **Verfeinerungsfeld**.
-2. Geben Sie eine Anweisung ein, wie die Antwort angepasst werden soll, z. B.:
+1. Unterhalb der Antwort findest du das **Verfeinerungsfeld**.
+2. Gib eine Anweisung ein, wie die Antwort angepasst werden soll, z. B.:
    - „Mach die Antwort kürzer"
    - „Formuliere freundlicher"
    - „Fokussiere dich auf den rechtlichen Aspekt"
    - „Antworte auf Deutsch"
-3. **Quellen auswählen (optional):** Klicken Sie bei den Quellenkarten auf **Include**, um nur bestimmte Quellen für die Verfeinerung zu berücksichtigen. Wenn keine Quellen ausgewählt sind, werden alle Quellen verwendet.
-4. Klicken Sie auf **Refine**.
+3. **Quellen auswählen (optional):** Klicke bei den Quellenkarten auf **Include**, um nur bestimmte Quellen für die Verfeinerung zu berücksichtigen. Wenn keine Quellen ausgewählt sind, werden alle Quellen verwendet.
+4. Klicke auf **Refine**.
 
-Die verfeinerte Antwort ersetzt die bisherige Antwort. Die Quellenkarten bleiben erhalten, sodass Sie den Vorgang beliebig oft wiederholen können.
+Die verfeinerte Antwort ersetzt die bisherige Antwort. Die Quellenkarten bleiben erhalten, sodass du den Vorgang beliebig oft wiederholen kannst.
 
 ---
 
@@ -186,12 +186,12 @@ Jede Quellenkarte zeigt folgende Informationen:
 
 ## Benutzerverwaltung (nur Admins)
 
-Administratoren sehen in der Seitenleiste den zusätzlichen Menüpunkt **Users**. Hier können folgende Aktionen durchgeführt werden:
+Als Administrator siehst du in der Seitenleiste den zusätzlichen Menüpunkt **Users**. Hier kannst du folgende Aktionen durchführen:
 
 | Aktion | Beschreibung |
 |--------|-------------|
-| **Benutzer genehmigen** | Neu registrierte Benutzer haben den Status *ausstehend*. Klicken Sie auf **Approve**, um den Zugang freizuschalten. |
-| **Benutzer hinzufügen** | Erstellen Sie einen neuen Benutzer mit E-Mail, Passwort und Rolle (Benutzer oder Admin). Der Benutzer ist sofort aktiv. |
+| **Benutzer genehmigen** | Neu registrierte Benutzer haben den Status *ausstehend*. Klicke auf **Approve**, um den Zugang freizuschalten. |
+| **Benutzer hinzufügen** | Erstelle einen neuen Benutzer mit E-Mail, Passwort und Rolle (Benutzer oder Admin). Der Benutzer ist sofort aktiv. |
 | **Benutzer löschen** | Entfernt einen Benutzer. Der letzte verbleibende Admin kann nicht gelöscht werden. |
 
 In der Benutzerliste werden für jeden Benutzer E-Mail, Rolle, Status und Erstellungsdatum angezeigt.
@@ -200,13 +200,13 @@ In der Benutzerliste werden für jeden Benutzer E-Mail, Rolle, Status und Erstel
 
 ## Design-Modus (Theme)
 
-Unten in der Seitenleiste finden Sie den **Theme-Umschalter** mit drei Optionen:
+Unten in der Seitenleiste findest du den **Theme-Umschalter** mit drei Optionen:
 
 | Modus | Beschreibung |
 |-------|-------------|
 | **Light** | Helles Design. |
 | **Dark** | Dunkles Design. |
-| **System** | Passt sich automatisch an die Systemeinstellung Ihres Betriebssystems an. |
+| **System** | Passt sich automatisch an die Systemeinstellung deines Betriebssystems an. |
 
 Die Einstellung wird im Browser gespeichert und bleibt auch nach dem Schließen erhalten.
 
@@ -214,10 +214,10 @@ Die Einstellung wird im Browser gespeichert und bleibt auch nach dem Schließen 
 
 ## Tipps für die beste Nutzung
 
-- **Aussagekräftige Titel vergeben** – Gute Titel helfen Ihnen, Snippets in der Sammlung schnell wiederzufinden.
-- **Gruppen sinnvoll nutzen** – Organisieren Sie Ihre Snippets thematisch in Gruppen, um den Suchbereich gezielt einschränken zu können.
-- **Beispielfragen pflegen** – Hinterlegen Sie bei wichtigen Snippets typische Fragen. Das verbessert die Trefferqualität bei der Suche erheblich.
-- **Antwortnähe anpassen** – Für wörtliche Zitate setzen Sie den Regler hoch; für freiere Zusammenfassungen niedrig.
-- **Quellen prüfen** – Kontrollieren Sie bei wichtigen Antworten immer die angezeigten Quellen und deren Konfidenzwerte.
-- **Verfeinerung nutzen** – Wenn die erste Antwort nicht passt, formulieren Sie eine klare Verfeinerungsanweisung, anstatt die Frage komplett neu zu stellen.
-- **Sprachübergreifend suchen** – Die Anwendung unterstützt mehrsprachige Suche. Stellen Sie Fragen in einer beliebigen Sprache, auch wenn Ihre Snippets in einer anderen Sprache vorliegen.
+- **Aussagekräftige Titel vergeben** – Gute Titel helfen dir, Snippets in der Sammlung schnell wiederzufinden.
+- **Gruppen sinnvoll nutzen** – Organisiere deine Snippets thematisch in Gruppen, um den Suchbereich gezielt einschränken zu können.
+- **Beispielfragen pflegen** – Hinterlege bei wichtigen Snippets typische Fragen. Das verbessert die Trefferqualität bei der Suche erheblich.
+- **Antwortnähe anpassen** – Für wörtliche Zitate setze den Regler hoch; für freiere Zusammenfassungen niedrig.
+- **Quellen prüfen** – Kontrolliere bei wichtigen Antworten immer die angezeigten Quellen und deren Konfidenzwerte.
+- **Verfeinerung nutzen** – Wenn die erste Antwort nicht passt, formuliere eine klare Verfeinerungsanweisung, anstatt die Frage komplett neu zu stellen.
+- **Sprachübergreifend suchen** – Die Anwendung unterstützt mehrsprachige Suche. Stelle Fragen in einer beliebigen Sprache, auch wenn deine Snippets in einer anderen Sprache vorliegen.
