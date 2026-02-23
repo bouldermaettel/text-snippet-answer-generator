@@ -1,4 +1,4 @@
-import type { AskResponse, PromptItem, RefineResponse, SnippetItem, SnippetListResponse, SnippetMetadata, SourceItem, TokenResponse, User } from "./types";
+import type { AskResponse, PromptItem, RefineResponse, SnippetGroupListResponse, SnippetItem, SnippetListResponse, SnippetMetadata, SourceItem, TokenResponse, TranslationEntry, User } from "./types";
 
 const BASE = "";
 /** Base URL for document links (e.g. '' for same-origin, or 'http://localhost:8000' if you need to open the backend directly). */
@@ -232,6 +232,46 @@ export async function getSnippets(
   await checkUnauthorized(res);
   if (!res.ok) throw new Error(`Snippets failed: ${res.status}`);
   return res.json();
+}
+
+export async function getSnippetsGrouped(
+  limit = 500,
+  offset = 0,
+  groups?: string[] | null,
+  languages?: string[] | null,
+): Promise<SnippetGroupListResponse> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset), grouped: "true" });
+  if (groups?.length) {
+    groups.forEach((g) => params.append("group", g));
+  }
+  if (languages?.length) {
+    languages.forEach((l) => params.append("language", l));
+  }
+  const res = await fetch(`${BASE}/api/snippets?${params}`, { headers: authHeaders() });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(`Snippets failed: ${res.status}`);
+  return res.json();
+}
+
+export async function updateSnippetGroup(
+  id: string,
+  title?: string | null,
+  group?: string | null,
+  metadata?: SnippetMetadata,
+  translations?: Record<string, TranslationEntry>,
+): Promise<void> {
+  const res = await fetch(`${BASE}/api/snippets/${id}/group`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      title: title ?? null,
+      group: group ?? null,
+      metadata: metadata ?? null,
+      translations: translations ?? null,
+    }),
+  });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
 }
 
 export async function getGroups(): Promise<{ groups: string[] }> {

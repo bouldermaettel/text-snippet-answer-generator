@@ -22,18 +22,22 @@ from .generation import generate_answer, refine_answer
 from .models import (
     AskRequest,
     AskResponse,
-    CollectionImportItem,
+    CollectionGroupedItem,
     PromptItem,
     PromptUpdate,
     RefineRequest,
     RefineResponse,
-    SourceItem,
     SnippetCreate,
+    SnippetGroupItem,
+    SnippetGroupListResponse,
+    SnippetGroupUpdate,
     SnippetItem,
     SnippetListResponse,
     SnippetUpdate,
     ExampleQuestionsUpdate,
+    SourceItem,
     TokenResponse,
+    TranslationEntry,
     UserCreate,
     UserCreateAdmin,
     UserLogin,
@@ -41,7 +45,7 @@ from .models import (
     UserUpdate,
 )
 from .retrieval import answer_confidence, retrieve_and_score
-from .store import add_snippets, delete_snippet, delete_snippets_by_group, get_linked_snippets, get_snippet_metadata, list_groups, list_snippets, update_example_questions, update_snippet
+from .store import add_snippets, delete_snippet, delete_snippets_by_group, get_linked_snippets, get_snippet_metadata, list_groups, list_snippets, list_snippets_grouped, update_example_questions, update_snippet, update_snippet_grouped
 from .anonymize import anonymize_text
 from .upload import extract_text_from_bytes
 from .user_store import count_admins, create_user, delete_user, get_user_by_email, get_user_by_id, init_db, list_users, set_user_role, set_user_status
@@ -260,16 +264,50 @@ def refine(
     )
 
 
-@app.get("/api/snippets", response_model=SnippetListResponse)
+@app.get("/api/snippets")
 def get_snippets(
     limit: int = 100,
     offset: int = 0,
     group: Annotated[list[str] | None, Query()] = None,
     language: Annotated[list[str] | None, Query()] = None,
     include_translations: bool = False,
+    grouped: bool = False,
     current_user: Annotated[dict, Depends(get_current_user)] = None,
 ):
-    """List snippets (paginated). Optional filters: group(s), language(s), include_translations."""
+    """List snippets (paginated). Optional filters: group(s), language(s).
+
+    If ``grouped=true``, returns snippets with nested translations dict
+    (``SnippetGroupListResponse``).  Otherwise returns the flat list
+    (``SnippetListResponse``).
+    """
+    if grouped:
+        snippets, total = list_snippets_grouped(
+            limit=limit,
+            offset=offset,
+            group_names=group if group and len(group) > 0 else None,
+            languages=language if language and len(language) > 0 else None,
+        )
+        return SnippetGroupListResponse(
+            snippets=[
+                SnippetGroupItem(
+                    id=s["id"],
+                    title=s.get("title"),
+                    group=s.get("group"),
+                    metadata=s.get("metadata"),
+                    translations={
+                        lang: TranslationEntry(
+                            text=tr["text"],
+                            example_questions=tr.get("example_questions", []),
+                            is_generated_translation=tr.get("is_generated_translation", False),
+                        )
+                        for lang, tr in (s.get("translations") or {}).items()
+                    },
+                )
+                for s in snippets
+            ],
+            total=total,
+        )
+
     snippets, total = list_snippets(
         limit=limit,
         offset=offset,
@@ -344,8 +382,37 @@ def patch_snippet(
     payload: SnippetUpdate,
     current_user: Annotated[dict, Depends(get_current_user)] = None,
 ):
-    """Update a snippet by id."""
+    """Update a snippet by id (flat single-language update)."""
     update_snippet(snippet_id, payload.text, payload.title, metadata=payload.metadata, group=payload.group)
+    return {"ok": True}
+
+
+@app.put("/api/snippets/{snippet_id}/group")
+def put_snippet_group(
+    snippet_id: str,
+    payload: SnippetGroupUpdate,
+    current_user: Annotated[dict, Depends(get_current_user)] = None,
+):
+    """Update a snippet group (shared metadata + all translations)."""
+    translations_dict = None
+    if payload.translations is not None:
+        translations_dict = {
+            lang: {
+                "text": tr.text,
+                "example_questions": tr.example_questions,
+                "is_generated_translation": tr.is_generated_translation,
+            }
+            for lang, tr in payload.translations.items()
+        }
+    ok = update_snippet_grouped(
+        snippet_id,
+        title=payload.title,
+        group=payload.group,
+        metadata=dict(payload.metadata) if payload.metadata else None,
+        translations=translations_dict,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Snippet not found")
     return {"ok": True}
 
 
@@ -793,12 +860,12 @@ def import_collection(
     current_user: Annotated[dict, Depends(get_current_admin)],
     file: UploadFile = File(...),
 ):
-    """Import a collection from a JSON file (admin only).
+    """Import a collection from a grouped JSON file (admin only).
 
-    The file is a flat JSON array where every snippet -- original and
-    auto-generated translation alike -- is its own top-level entry.
-    Auto-translations are identified by ``metadata.is_generated_translation``
-    and linked to their parent via ``metadata.parent_title``.
+    The file is a JSON array of grouped snippet objects.  Each object has a
+    ``title``, ``group``, shared ``metadata``, and a ``translations`` dict
+    keyed by language code containing ``text``, ``example_questions``, and
+    ``is_generated_translation``.
 
     Existing snippets in the group(s) present in the file are **replaced**.
     """
@@ -815,15 +882,12 @@ def import_collection(
         raise HTTPException(status_code=400, detail="JSON must be an array of snippet objects")
 
     try:
-        entries = [CollectionImportItem(**item) for item in raw]
+        entries = [CollectionGroupedItem(**item) for item in raw]
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Validation error: {e}")
 
     if not entries:
         raise HTTPException(status_code=400, detail="No snippets in file")
-
-    originals = [e for e in entries if not (e.metadata or {}).get("is_generated_translation")]
-    auto_translations = [e for e in entries if (e.metadata or {}).get("is_generated_translation")]
 
     groups_in_file: set[str] = {e.group for e in entries}
     replaced_groups: list[str] = []
@@ -831,19 +895,6 @@ def import_collection(
         count = delete_snippets_by_group(g)
         if count > 0:
             replaced_groups.append(g)
-
-    items: list[dict] = []
-    for entry in originals:
-        metadata = dict(entry.metadata) if entry.metadata else {}
-        items.append({
-            "text": entry.text,
-            "title": entry.title,
-            "metadata": metadata if metadata else None,
-            "group": entry.group,
-        })
-
-    ids = add_snippets(items, skip_translation=True)
-    title_to_id = {originals[i].title: ids[i] for i in range(len(ids))}
 
     from .store import _chunk_text, _get_collection, _index_example_questions
     from .embeddings import embed
@@ -853,60 +904,105 @@ def import_collection(
     overlap = settings.chunk_overlap
     coll = _get_collection()
 
-    tr_count = 0
-    for entry in auto_translations:
-        meta = dict(entry.metadata) if entry.metadata else {}
-        parent_title = meta.get("parent_title", "")
-        parent_id = title_to_id.get(parent_title)
-        if not parent_id:
-            logger.warning("Skipping translation '%s': parent '%s' not found", entry.title, parent_title)
+    total_originals = 0
+    total_translations = 0
+
+    for entry in entries:
+        originals = {
+            lang: tr for lang, tr in entry.translations.items()
+            if not tr.is_generated_translation
+        }
+        generated = {
+            lang: tr for lang, tr in entry.translations.items()
+            if tr.is_generated_translation
+        }
+
+        if not originals:
+            logger.warning("Skipping '%s': no original translations", entry.title)
             continue
 
-        lang = meta.get("language", "")
-        if not lang:
-            continue
+        first_lang = next(iter(originals))
+        first_tr = originals[first_lang]
 
-        tr_text = entry.text.strip()
-        if not tr_text:
-            continue
+        shared_meta = dict(entry.metadata) if entry.metadata else {}
+        shared_meta["language"] = first_lang
+        if first_tr.example_questions:
+            shared_meta["example_questions"] = first_tr.example_questions
 
-        chunks = _chunk_text(tr_text, chunk_size, overlap)
-        tr_ids: list[str] = []
-        tr_docs: list[str] = []
-        tr_metas: list[dict] = []
-        for idx, chunk in enumerate(chunks):
-            base_id = f"{parent_id}_tr_{lang}"
-            doc_id = base_id if len(chunks) == 1 else f"{base_id}_{idx}"
-            chunk_meta: dict[str, Any] = {
-                "title": parent_title,
-                "parent_id": parent_id,
-                "chunk_index": str(idx),
-                "group": entry.group,
-                "original_language": meta.get("original_language", ""),
-                "translation_language": lang,
-                "is_translation": "true",
-            }
-            enriched = dict(meta)
-            enriched.pop("is_generated_translation", None)
-            enriched.pop("parent_title", None)
-            enriched["translation_source"] = "generated"
-            chunk_meta["metadata_json"] = json.dumps(enriched)
-            tr_ids.append(doc_id)
-            tr_docs.append(chunk)
-            tr_metas.append(chunk_meta)
+        # Build linked_snippets for backward compat with retrieval pipeline
+        if len(originals) > 1:
+            all_titles = [f"{entry.title}-{lang}" for lang in originals]
+            shared_meta["linked_snippets"] = [
+                t for t in all_titles if t != f"{entry.title}-{first_lang}"
+            ]
 
-        if tr_ids:
-            embeddings = embed(tr_docs).tolist()
-            coll.add(ids=tr_ids, embeddings=embeddings, documents=tr_docs, metadatas=tr_metas)
-            tr_count += 1
+        items = [{
+            "text": first_tr.text,
+            "title": entry.title,
+            "metadata": shared_meta,
+            "group": entry.group,
+        }]
+        ids = add_snippets(items, skip_translation=True)
+        parent_id = ids[0]
+        total_originals += 1
 
-        eq = meta.get("example_questions", [])
-        if eq and isinstance(eq, list):
-            _index_example_questions(f"{parent_id}_tr_{lang}", eq, parent_title, entry.group)
+        if first_tr.example_questions:
+            _index_example_questions(
+                parent_id, first_tr.example_questions, entry.title, entry.group
+            )
+
+        remaining_originals = {
+            lang: tr for lang, tr in originals.items() if lang != first_lang
+        }
+        all_extra: dict[str, TranslationEntry] = {**remaining_originals, **generated}
+
+        for lang, tr in all_extra.items():
+            tr_text = tr.text.strip()
+            if not tr_text:
+                continue
+
+            is_gen = tr.is_generated_translation or lang in generated
+            chunks = _chunk_text(tr_text, chunk_size, overlap)
+            tr_ids: list[str] = []
+            tr_docs: list[str] = []
+            tr_metas: list[dict] = []
+            for idx, chunk in enumerate(chunks):
+                base_id = f"{parent_id}_tr_{lang}"
+                doc_id = base_id if len(chunks) == 1 else f"{base_id}_{idx}"
+                chunk_meta: dict[str, Any] = {
+                    "title": entry.title,
+                    "parent_id": parent_id,
+                    "chunk_index": str(idx),
+                    "group": entry.group,
+                    "original_language": first_lang,
+                    "translation_language": lang,
+                    "is_translation": "true",
+                }
+                enriched: dict[str, Any] = dict(shared_meta)
+                enriched["language"] = lang
+                enriched.pop("linked_snippets", None)
+                enriched.pop("example_questions", None)
+                if tr.example_questions:
+                    enriched["example_questions"] = tr.example_questions
+                enriched["translation_source"] = "generated" if is_gen else "original"
+                chunk_meta["metadata_json"] = json.dumps(enriched)
+                tr_ids.append(doc_id)
+                tr_docs.append(chunk)
+                tr_metas.append(chunk_meta)
+
+            if tr_ids:
+                embeddings = embed(tr_docs).tolist()
+                coll.add(ids=tr_ids, embeddings=embeddings, documents=tr_docs, metadatas=tr_metas)
+                total_translations += 1
+
+            if tr.example_questions:
+                _index_example_questions(
+                    f"{parent_id}_tr_{lang}", tr.example_questions, entry.title, entry.group
+                )
 
     return {
-        "imported": len(ids),
-        "translation_entries": tr_count,
+        "imported": total_originals,
+        "translation_entries": total_translations,
         "groups": sorted(groups_in_file),
         "replaced_groups": sorted(replaced_groups),
     }
@@ -918,42 +1014,35 @@ def export_collection(
     group: Annotated[list[str] | None, Query()] = None,
     language: Annotated[list[str] | None, Query()] = None,
 ):
-    """Export snippets as a flat JSON file (admin only).
+    """Export snippets as a grouped JSON file (admin only).
 
-    Returns a flat array where every snippet (original and auto-generated
-    translation) is its own top-level entry.  Auto-translations have
-    ``metadata.is_generated_translation = true`` and ``metadata.parent_title``.
+    Returns a JSON array where each entry has ``title``, ``group``,
+    shared ``metadata``, and a ``translations`` dict keyed by language
+    code.
     """
-    all_snippets, _ = list_snippets(
+    grouped_snippets, _ = list_snippets_grouped(
         limit=100_000, offset=0,
         group_names=group if group and len(group) > 0 else None,
         languages=language if language and len(language) > 0 else None,
-        include_translations=True,
     )
 
-    # Build id -> title map for originals so we can set parent_title on translations
-    id_to_title: dict[str, str] = {}
-    for s in all_snippets:
-        meta = s.get("metadata", {})
-        if not meta.get("is_generated_translation"):
-            id_to_title[s["id"]] = s.get("title", "")
-
     output: list[dict[str, Any]] = []
-    for s in all_snippets:
-        meta = s.get("metadata", {})
-        clean_meta = _clean_metadata_for_export(meta)
-
-        if meta.get("is_generated_translation"):
-            raw_id = s["id"]
-            parent_id = raw_id.split("_tr_")[0] if "_tr_" in raw_id else raw_id
-            clean_meta["is_generated_translation"] = True
-            clean_meta["parent_title"] = id_to_title.get(parent_id, "")
+    for s in grouped_snippets:
+        clean_meta = _clean_metadata_for_export(s.get("metadata"))
+        translations: dict[str, dict[str, Any]] = {}
+        for lang, tr in (s.get("translations") or {}).items():
+            tr_out: dict[str, Any] = {"text": tr["text"]}
+            if tr.get("example_questions"):
+                tr_out["example_questions"] = tr["example_questions"]
+            if tr.get("is_generated_translation"):
+                tr_out["is_generated_translation"] = True
+            translations[lang] = tr_out
 
         output.append({
-            "text": s["text"],
             "title": s.get("title") or "",
             "group": s.get("group") or "",
-            "metadata": clean_meta,
+            "metadata": clean_meta if clean_meta else None,
+            "translations": translations,
         })
 
     ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")

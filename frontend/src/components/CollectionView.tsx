@@ -3,16 +3,15 @@ import {
   backendUnreachableMessage,
   deleteSnippet,
   exportCollection,
-  getSnippets,
+  getSnippetsGrouped,
   importCollection,
   isNetworkError,
-  openDocumentInNewTab,
-  updateSnippet,
+  updateSnippetGroup,
 } from "../api";
-import type { SnippetItem, User } from "../types";
+import type { SnippetGroup, User } from "../types";
 import { AddSnippetModal } from "./AddSnippetModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
-import { EditSnippetModal } from "./EditSnippetModal";
+import { GroupEditModal } from "./GroupEditModal";
 import { GroupSelector } from "./GroupSelector";
 
 type Props = {
@@ -30,13 +29,13 @@ const LANGUAGES = [
 ];
 
 export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [], user }: Props) {
-  const [snippets, setSnippets] = useState<SnippetItem[]>([]);
+  const [snippets, setSnippets] = useState<SnippetGroup[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [snippetToDelete, setSnippetToDelete] = useState<SnippetItem | null>(null);
-  const [snippetToEdit, setSnippetToEdit] = useState<SnippetItem | null>(null);
+  const [snippetToDelete, setSnippetToDelete] = useState<SnippetGroup | null>(null);
+  const [snippetToEdit, setSnippetToEdit] = useState<SnippetGroup | null>(null);
   const [editingGroupSnippetId, setEditingGroupSnippetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -44,31 +43,29 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
   const [exporting, setExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter state
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-  const [showTranslations, setShowTranslations] = useState(false);
   const [snippetSearch, setSnippetSearch] = useState("");
 
   const isAdmin = user?.role === "admin";
 
-  // Client-side filtering for search
   const filteredSnippets = snippets.filter(
     (s) =>
       !snippetSearch ||
       (s.title || "").toLowerCase().includes(snippetSearch.toLowerCase()) ||
-      s.text.toLowerCase().includes(snippetSearch.toLowerCase())
+      Object.values(s.translations).some((tr) =>
+        tr.text.toLowerCase().includes(snippetSearch.toLowerCase())
+      )
   );
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getSnippets(
+      const res = await getSnippetsGrouped(
         500,
         0,
         selectedGroups.length ? selectedGroups : undefined,
         selectedLanguages.length ? selectedLanguages : undefined,
-        showTranslations
       );
       setSnippets(res.snippets);
       setTotal(res.total);
@@ -79,7 +76,7 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
     } finally {
       setLoading(false);
     }
-  }, [selectedGroups, selectedLanguages, showTranslations]);
+  }, [selectedGroups, selectedLanguages]);
 
   const toggleLanguage = (code: string) => {
     setSelectedLanguages((prev) =>
@@ -170,18 +167,26 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
     }
   }
 
+  function getPreviewText(s: SnippetGroup): string {
+    const langOrder = ["de", "en", "fr", "it"];
+    for (const lang of langOrder) {
+      if (s.translations[lang]) return s.translations[lang].text;
+    }
+    const first = Object.values(s.translations)[0];
+    return first?.text ?? "";
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-slate-600 dark:text-slate-400">
-          {snippetSearch ? `${filteredSnippets.length} of ${total}` : total} snippet{(snippetSearch ? filteredSnippets.length : total) !== 1 ? "s" : ""}
+          {snippetSearch ? `${filteredSnippets.length} of ${total}` : total} snippet group{(snippetSearch ? filteredSnippets.length : total) !== 1 ? "s" : ""}
           {selectedGroups.length > 0
             ? ` in ${selectedGroups.length === 1
                 ? `"${selectedGroups[0] || "(ungrouped)"}"`
                 : `${selectedGroups.length} groups`}`
             : " in your collection"}
           {selectedLanguages.length > 0 && ` (${selectedLanguages.map(l => l.toUpperCase()).join(", ")})`}
-          {showTranslations && " + translations"}
           {snippetSearch && ` matching "${snippetSearch}"`}
         </p>
         <div className="flex items-center gap-2">
@@ -240,9 +245,9 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
           onChange={(e) => setSnippetSearch(e.target.value)}
           className="w-48 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:placeholder-slate-500 dark:text-white"
         />
-        
+
         <div className="h-6 w-px bg-slate-300 dark:bg-slate-600" />
-        
+
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Language:</span>
           <div className="flex gap-1">
@@ -272,20 +277,6 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
             )}
           </div>
         </div>
-        
-        <div className="h-6 w-px bg-slate-300 dark:bg-slate-600" />
-        
-        <label className="flex cursor-pointer items-center gap-2">
-          <input
-            type="checkbox"
-            checked={showTranslations}
-            onChange={(e) => setShowTranslations(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700"
-          />
-          <span className="text-sm text-slate-600 dark:text-slate-400">
-            Show generated translations
-          </span>
-        </label>
       </div>
 
       {importStatus && (
@@ -331,7 +322,7 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
 
       {!loading && snippets.length > 0 && filteredSnippets.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-800/50">
-          <p className="text-slate-500 dark:text-slate-400">No snippets found matching "{snippetSearch}"</p>
+          <p className="text-slate-500 dark:text-slate-400">No snippets found matching &quot;{snippetSearch}&quot;</p>
           <button
             type="button"
             onClick={() => setSnippetSearch("")}
@@ -345,34 +336,26 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
       {!loading && filteredSnippets.length > 0 && (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredSnippets.map((s) => {
-            const lang = s.metadata?.language as string | undefined;
             const heading = s.metadata?.heading as string | undefined;
-            const linkedSnippets = s.metadata?.linked_snippets as string[] | undefined;
-            const hasGeneratedTranslations = s.metadata?.has_generated_translations as boolean | undefined;
-            const isGeneratedTranslation = s.metadata?.is_generated_translation as boolean | undefined;
             const hasInstructions = !!(s.metadata?.instructions as string | undefined);
             const hasPrerequisites = !!(s.metadata?.prerequisites as string | undefined);
+            const langCodes = Object.keys(s.translations);
             const langFlags: Record<string, string> = { de: "DE", fr: "FR", it: "IT", en: "EN" };
-            
+            const hasGeneratedTranslation = Object.values(s.translations).some(
+              (tr) => tr.is_generated_translation
+            );
+            const previewText = getPreviewText(s);
+
             return (
               <li
                 key={s.id}
-                className={`flex min-h-[140px] flex-col rounded-xl border p-4 ${
-                  isGeneratedTranslation
-                    ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20"
-                    : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50"
-                }`}
+                className="flex min-h-[140px] flex-col rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-slate-900 dark:text-white">
                       {s.title || "(no title)"}
                     </p>
-                    {isGeneratedTranslation && (
-                      <span className="shrink-0 rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-800 dark:text-amber-200">
-                        Auto
-                      </span>
-                    )}
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1">
                     {editingGroupSnippetId === s.id ? (
@@ -384,12 +367,12 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
                           onChange={() => {}}
                           onSelect={async (newGroup) => {
                             try {
-                              await updateSnippet(
+                              await updateSnippetGroup(
                                 s.id,
-                                s.text,
-                                s.title ?? undefined,
+                                s.title,
                                 newGroup.trim() || null,
-                                s.metadata
+                                s.metadata,
+                                s.translations,
                               );
                               setEditingGroupSnippetId(null);
                               await refresh();
@@ -422,17 +405,6 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
                         {heading}
                       </span>
                     )}
-                    {/* Show primary language */}
-                    {lang && (
-                      <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                        {langFlags[lang.toLowerCase()] ?? lang.toUpperCase()}
-                      </span>
-                    )}
-                    {hasGeneratedTranslations && (
-                      <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" title="Has auto-translated versions">
-                        Auto
-                      </span>
-                    )}
                     {hasInstructions && (
                       <span className="inline-flex rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" title="Has instructions/procedure">
                         Instr.
@@ -444,27 +416,36 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
                       </span>
                     )}
                   </div>
-                  {/* Show linked snippets info */}
-                  {linkedSnippets && linkedSnippets.length > 0 && (
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Linked: {linkedSnippets.slice(0, 3).join(", ")}{linkedSnippets.length > 3 ? ` +${linkedSnippets.length - 3} more` : ""}
-                    </p>
-                  )}
+                  {/* Language pills */}
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {langCodes.sort().map((lang) => {
+                      const tr = s.translations[lang];
+                      return (
+                        <span
+                          key={lang}
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            tr.is_generated_translation
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                              : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          }`}
+                          title={tr.is_generated_translation ? `${langFlags[lang] ?? lang.toUpperCase()} (auto-translated)` : langFlags[lang] ?? lang.toUpperCase()}
+                        >
+                          {langFlags[lang] ?? lang.toUpperCase()}
+                          {tr.is_generated_translation && (
+                            <span className="ml-0.5 opacity-60">*</span>
+                          )}
+                        </span>
+                      );
+                    })}
+                    {hasGeneratedTranslation && (
+                      <span className="text-xs text-slate-400 dark:text-slate-500 self-center ml-0.5" title="* = auto-translated">
+                        * auto
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
-                    {s.text}
+                    {previewText}
                   </p>
-                  {s.metadata?.source_document_url && (
-                    <button
-                      type="button"
-                      onClick={() => openDocumentInNewTab(s.id).catch((e) => alert(e instanceof Error ? e.message : "Failed to open document"))}
-                      className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-                    >
-                      View original document
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
                 <div className="mt-3 flex shrink-0 justify-end gap-1">
                   <button
@@ -505,7 +486,7 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
 
       {snippetToDelete && (
         <ConfirmDeleteModal
-          snippet={snippetToDelete}
+          snippet={{ id: snippetToDelete.id, text: getPreviewText(snippetToDelete), title: snippetToDelete.title, group: snippetToDelete.group, metadata: snippetToDelete.metadata }}
           onConfirm={handleDelete}
           onCancel={() => setSnippetToDelete(null)}
           loading={deleting}
@@ -513,7 +494,7 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
       )}
 
       {snippetToEdit && (
-        <EditSnippetModal
+        <GroupEditModal
           snippet={snippetToEdit}
           groups={groups}
           onSaved={() => {

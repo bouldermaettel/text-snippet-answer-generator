@@ -726,6 +726,226 @@ def list_snippets(
     return snippets, total
 
 
+_RUNTIME_METADATA_KEYS = frozenset({
+    "has_generated_translations",
+    "available_languages",
+    "is_generated_translation",
+    "translation_source",
+})
+
+
+def _strip_lang_suffix(title: str) -> str:
+    """Strip trailing language suffix (e.g. '-de', '-en') from a title."""
+    for lang in ["de", "en", "fr", "it", "es", "pt", "nl", "pl", "ru", "zh", "ja", "ko"]:
+        if title.lower().endswith(f"-{lang}"):
+            return title[: -len(lang) - 1]
+    return title
+
+
+def list_snippets_grouped(
+    limit: int = 100,
+    offset: int = 0,
+    group_name: str | None = None,
+    group_names: list[str] | None = None,
+    languages: list[str] | None = None,
+) -> tuple[list[dict], int]:
+    """Return snippets in grouped format with translations nested under each parent.
+
+    Each returned dict has:
+        id, title, group, metadata (shared),
+        translations: {lang_code: {text, example_questions, is_generated_translation}}
+
+    Groups entries that share the same ``parent_id`` (new import format) **or**
+    are linked via the ``linked_snippets`` metadata field (old flat format).
+
+    The language filter keeps groups that have *any* matching language variant.
+    """
+    coll = _get_collection()
+    n = coll.count()
+    if n == 0:
+        return [], 0
+    fetch_limit = min(max(n, 10000), 500_000)
+    result = coll.get(include=["documents", "metadatas"], limit=fetch_limit)
+    ids = result["ids"] or []
+    if not ids:
+        return [], 0
+
+    lang_filter = {lang.lower() for lang in languages} if languages else None
+
+    # Phase 1: group raw chunks by parent_id
+    by_parent: dict[str, list[tuple[int, str, dict]]] = {}
+    translations_by_parent: dict[str, dict[str, list[tuple[int, str, dict]]]] = {}
+
+    for i, doc_id in enumerate(ids):
+        meta = (result["metadatas"] or [{}])[i] or {}
+        doc = (result["documents"] or [""])[i] or ""
+        pid = meta.get("parent_id") or doc_id
+        idx = int(meta.get("chunk_index", 0))
+        is_translation = meta.get("is_translation", "false") == "true"
+        trans_lang = meta.get("translation_language", "")
+
+        if is_translation:
+            if trans_lang:
+                translations_by_parent.setdefault(pid, {}).setdefault(trans_lang, []).append(
+                    (idx, doc, meta)
+                )
+            continue
+        by_parent.setdefault(pid, []).append((idx, doc, meta))
+
+    eq_coll = _get_example_questions_collection()
+
+    # Phase 2: build per-parent snippet dicts
+    parent_snippets: dict[str, dict] = {}
+    title_to_pid: dict[str, str] = {}
+
+    for pid, chunks in by_parent.items():
+        chunks_sorted = sorted(chunks, key=lambda x: x[0])
+        first = chunks_sorted[0][2]
+        title = first.get("title") or ""
+        grp = first.get("group") or ""
+        metadata = _parse_metadata_json(first.get("metadata_json")) or {}
+
+        original_lang = (metadata.get("language") or "").lower()
+        original_text = "\n\n".join(c[1] for c in chunks_sorted)
+
+        shared_meta: dict = {}
+        for k, v in metadata.items():
+            if k in ("language", "linked_snippets", "example_questions") or k in _RUNTIME_METADATA_KEYS:
+                continue
+            shared_meta[k] = v
+
+        translations: dict[str, dict] = {}
+
+        orig_eq = metadata.get("example_questions", [])
+        if not orig_eq:
+            eq_result = eq_coll.get(where={"snippet_id": pid}, include=["documents"])
+            if eq_result["ids"]:
+                orig_eq = eq_result["documents"]
+
+        lang_key = original_lang or "unknown"
+        translations[lang_key] = {
+            "text": original_text,
+            "example_questions": orig_eq if isinstance(orig_eq, list) else [],
+            "is_generated_translation": False,
+        }
+
+        for lang, tr_chunks in translations_by_parent.get(pid, {}).items():
+            tr_sorted = sorted(tr_chunks, key=lambda x: x[0])
+            tr_text = "\n\n".join(c[1] for c in tr_sorted)
+            tr_meta = _parse_metadata_json(tr_sorted[0][2].get("metadata_json")) or {}
+            tr_eq = tr_meta.get("example_questions", [])
+            if not tr_eq:
+                translation_id = f"{pid}_tr_{lang}"
+                eq_result = eq_coll.get(where={"snippet_id": translation_id}, include=["documents"])
+                if eq_result["ids"]:
+                    tr_eq = eq_result["documents"]
+            is_gen = tr_meta.get("translation_source", "generated") == "generated"
+            translations[lang] = {
+                "text": tr_text,
+                "example_questions": tr_eq if isinstance(tr_eq, list) else [],
+                "is_generated_translation": is_gen,
+            }
+
+        parent_snippets[pid] = {
+            "id": pid,
+            "title": title or None,
+            "group": grp,
+            "metadata": shared_meta if shared_meta else None,
+            "translations": translations,
+            "_linked_snippets": metadata.get("linked_snippets", []),
+        }
+        if title:
+            title_to_pid[title] = pid
+
+    # Phase 3: merge entries linked via linked_snippets (old flat format)
+    # Use union-find to group parent_ids that reference each other
+    uf_parent: dict[str, str] = {}
+
+    def uf_find(x: str) -> str:
+        while uf_parent.get(x, x) != x:
+            uf_parent[x] = uf_parent.get(uf_parent[x], uf_parent[x])
+            x = uf_parent[x]
+        return x
+
+    def uf_union(a: str, b: str) -> None:
+        ra, rb = uf_find(a), uf_find(b)
+        if ra != rb:
+            uf_parent[rb] = ra
+
+    for pid, sn in parent_snippets.items():
+        linked = sn.get("_linked_snippets", [])
+        for linked_title in linked:
+            linked_pid = title_to_pid.get(linked_title)
+            if linked_pid and linked_pid != pid:
+                uf_union(pid, linked_pid)
+
+    # Group by union-find root
+    merged_groups: dict[str, list[str]] = {}
+    for pid in parent_snippets:
+        root = uf_find(pid)
+        merged_groups.setdefault(root, []).append(pid)
+
+    # Phase 4: build final grouped output
+    snippets: list[dict] = []
+    for root, member_pids in merged_groups.items():
+        if len(member_pids) == 1:
+            sn = parent_snippets[member_pids[0]]
+            sn.pop("_linked_snippets", None)
+            if sn.get("title"):
+                sn["title"] = _strip_lang_suffix(sn["title"])
+            if lang_filter:
+                if not any(lk in lang_filter for lk in sn["translations"]):
+                    continue
+            snippets.append(sn)
+            continue
+
+        # Merge multiple parent_ids into one grouped snippet
+        primary = parent_snippets[root]
+        merged_translations: dict[str, dict] = {}
+        merged_meta: dict = dict(primary.get("metadata") or {})
+        title = primary.get("title") or ""
+        grp = primary.get("group") or ""
+
+        for pid in member_pids:
+            sn = parent_snippets[pid]
+            for lang, tr in sn["translations"].items():
+                if lang not in merged_translations:
+                    merged_translations[lang] = tr
+            # Fill shared metadata from any member that has it
+            for k, v in (sn.get("metadata") or {}).items():
+                if k not in merged_meta and v:
+                    merged_meta[k] = v
+            if not title and sn.get("title"):
+                title = sn["title"]
+            if not grp and sn.get("group"):
+                grp = sn["group"]
+
+        base_title = _strip_lang_suffix(title) if title else title
+
+        if lang_filter:
+            if not any(lk in lang_filter for lk in merged_translations):
+                continue
+
+        snippets.append({
+            "id": root,
+            "title": base_title or title or None,
+            "group": grp,
+            "metadata": merged_meta if merged_meta else None,
+            "translations": merged_translations,
+        })
+
+    if group_names is not None and len(group_names) > 0:
+        want_set = {g if g else "" for g in group_names}
+        snippets = [s for s in snippets if (s.get("group") or "") in want_set]
+    elif group_name is not None:
+        want = group_name if group_name else ""
+        snippets = [s for s in snippets if (s.get("group") or "") == want]
+
+    total = len(snippets)
+    snippets = snippets[offset : offset + limit]
+    return snippets, total
+
+
 def get_snippet_metadata(snippet_id: str) -> dict | None:
     """Return parsed metadata for a snippet (from first chunk), or None if not found."""
     coll = _get_collection()
@@ -884,6 +1104,141 @@ def update_snippet(
     if example_questions:
         _index_example_questions(snippet_id, example_questions, title or "", group or "")
     
+    return True
+
+
+def update_snippet_grouped(
+    snippet_id: str,
+    title: str | None = None,
+    group: str | None = None,
+    metadata: dict | None = None,
+    translations: dict[str, dict] | None = None,
+) -> bool:
+    """Update a snippet group: shared metadata + per-language texts.
+
+    Removes all existing chunks/translations and re-indexes everything.
+    ``translations`` is ``{lang: {text, example_questions, is_generated_translation}}``.
+    """
+    coll = _get_collection()
+
+    existing = coll.get(where={"parent_id": snippet_id}, include=["metadatas"])
+    if not existing["ids"]:
+        existing = coll.get(ids=[snippet_id], include=["metadatas"])
+    if not existing["ids"]:
+        return False
+
+    old_meta = (existing["metadatas"] or [{}])[0] or {}
+    old_title = old_meta.get("title") or ""
+    old_group = old_meta.get("group") or ""
+
+    if title is None:
+        title = old_title
+    if group is None:
+        group = old_group
+    if translations is None:
+        return True
+
+    if existing["ids"]:
+        coll.delete(ids=existing["ids"])
+    _delete_example_questions(snippet_id)
+
+    settings = get_settings()
+    chunk_size = settings.chunk_size
+    overlap = settings.chunk_overlap
+
+    shared_meta = metadata or {}
+
+    originals = {
+        lang: tr for lang, tr in translations.items()
+        if not tr.get("is_generated_translation", False)
+    }
+    generated = {
+        lang: tr for lang, tr in translations.items()
+        if tr.get("is_generated_translation", False)
+    }
+
+    if not originals:
+        return True
+
+    first_lang = next(iter(originals))
+    first_tr = originals[first_lang]
+
+    user_metadata = dict(shared_meta)
+    user_metadata["language"] = first_lang
+    if first_tr.get("example_questions"):
+        user_metadata["example_questions"] = first_tr["example_questions"]
+
+    all_ids: list[str] = []
+    all_docs: list[str] = []
+    all_metas: list[dict] = []
+
+    first_text = first_tr["text"].strip()
+    if first_text:
+        chunks = _chunk_text(first_text, chunk_size, overlap)
+        for idx, chunk in enumerate(chunks):
+            doc_id = snippet_id if len(chunks) == 1 else f"{snippet_id}_{idx}"
+            meta = {
+                "title": title or "",
+                "parent_id": snippet_id,
+                "chunk_index": str(idx),
+                "group": group or "",
+                "original_language": first_lang,
+                "translation_language": first_lang,
+                "is_translation": "false",
+            }
+            meta["metadata_json"] = json.dumps({**user_metadata, "language": first_lang})
+            all_ids.append(doc_id)
+            all_docs.append(chunk)
+            all_metas.append(meta)
+
+    if first_tr.get("example_questions"):
+        _index_example_questions(
+            snippet_id, first_tr["example_questions"], title or "", group or ""
+        )
+
+    remaining: dict[str, dict] = {
+        lang: tr for lang, tr in originals.items() if lang != first_lang
+    }
+    remaining.update(generated)
+
+    for lang, tr in remaining.items():
+        tr_text = tr["text"].strip()
+        if not tr_text:
+            continue
+        chunks = _chunk_text(tr_text, chunk_size, overlap)
+        for idx, chunk in enumerate(chunks):
+            base_id = f"{snippet_id}_tr_{lang}"
+            doc_id = base_id if len(chunks) == 1 else f"{base_id}_{idx}"
+            meta = {
+                "title": title or "",
+                "parent_id": snippet_id,
+                "chunk_index": str(idx),
+                "group": group or "",
+                "original_language": first_lang,
+                "translation_language": lang,
+                "is_translation": "true",
+            }
+            enriched = dict(shared_meta)
+            enriched["language"] = lang
+            if tr.get("example_questions"):
+                enriched["example_questions"] = tr["example_questions"]
+            enriched["translation_source"] = (
+                "generated" if tr.get("is_generated_translation") else "original"
+            )
+            meta["metadata_json"] = json.dumps(enriched)
+            all_ids.append(doc_id)
+            all_docs.append(chunk)
+            all_metas.append(meta)
+
+        if tr.get("example_questions"):
+            _index_example_questions(
+                f"{snippet_id}_tr_{lang}", tr["example_questions"], title or "", group or ""
+            )
+
+    if all_ids:
+        embeddings = embed(all_docs).tolist()
+        coll.upsert(ids=all_ids, embeddings=embeddings, documents=all_docs, metadatas=all_metas)
+
     return True
 
 

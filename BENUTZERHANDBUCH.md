@@ -16,7 +16,11 @@
    - [Antwort und Quellen](#antwort-und-quellen)
 5. [Antwort verfeinern (Refine)](#antwort-verfeinern-refine)
 6. [Quellenkarten und verknüpfte Sprachen](#quellenkarten-und-verknüpfte-sprachen)
-7. [Benutzerverwaltung (nur Admins)](#benutzerverwaltung-nur-admins)
+7. [Administration (nur Admins)](#administration-nur-admins)
+   - [Benutzerverwaltung](#benutzerverwaltung)
+   - [Sammlung importieren und exportieren](#sammlung-importieren-und-exportieren)
+   - [Prompt-Verwaltung](#prompt-verwaltung)
+   - [Backup und Wiederherstellung](#backup-und-wiederherstellung)
 8. [Design-Modus (Theme)](#design-modus-theme)
 
 ---
@@ -184,17 +188,81 @@ Jede Quellenkarte zeigt folgende Informationen:
 
 ---
 
-## Benutzerverwaltung (nur Admins)
+## Administration (nur Admins)
 
-Als Administrator siehst du in der Seitenleiste den zusätzlichen Menüpunkt **Users**. Hier kannst du folgende Aktionen durchführen:
+Als Administrator stehen dir in der Seitenleiste die zusätzlichen Menüpunkte **Users** und **Prompts** zur Verfügung. Ausserdem hast du in der Sammlungsansicht Zugriff auf Import- und Export-Funktionen.
+
+### Benutzerverwaltung
+
+Über den Menüpunkt **Users** verwaltest du alle Benutzerkonten. In der Benutzerliste werden für jeden Benutzer E-Mail, Rolle, Status und Erstellungsdatum angezeigt.
 
 | Aktion | Beschreibung |
 |--------|-------------|
 | **Benutzer genehmigen** | Neu registrierte Benutzer haben den Status *ausstehend*. Klicke auf **Approve**, um den Zugang freizuschalten. |
-| **Benutzer hinzufügen** | Erstelle einen neuen Benutzer mit E-Mail, Passwort und Rolle (Benutzer oder Admin). Der Benutzer ist sofort aktiv. |
-| **Benutzer löschen** | Entfernt einen Benutzer. Der letzte verbleibende Admin kann nicht gelöscht werden. |
+| **Benutzer hinzufügen** | Klicke auf **Add user** und gib E-Mail, Passwort (mind. 8 Zeichen) und Rolle (Benutzer oder Admin) ein. Der neue Benutzer ist sofort aktiv und muss nicht separat genehmigt werden. |
+| **Rolle ändern** | Über das Rollen-Dropdown in der Benutzerliste kannst du einen Benutzer zum Admin befördern oder einem Admin die Admin-Rechte entziehen. Der letzte verbleibende Admin kann nicht herabgestuft werden. |
+| **Benutzer löschen** | Klicke auf **Delete**, um einen Benutzer zu entfernen. Der letzte verbleibende Admin kann nicht gelöscht werden. |
 
-In der Benutzerliste werden für jeden Benutzer E-Mail, Rolle, Status und Erstellungsdatum angezeigt.
+> **Hinweis:** Der erste Admin-Benutzer wird beim Start der Anwendung automatisch aus den Umgebungsvariablen `ADMIN_EMAIL` und `ADMIN_PASSWORD` erstellt, sofern noch kein Admin existiert.
+
+### Sammlung importieren und exportieren
+
+In der Sammlungsansicht (**Collection**) stehen Admins die Schaltflächen **Import JSON** und **Export JSON** zur Verfügung.
+
+#### Sammlung exportieren
+
+1. Setze optional die gewünschten Filter (Gruppe, Sprache), um nur einen Teil der Sammlung zu exportieren.
+2. Klicke auf **Export JSON**.
+3. Eine JSON-Datei mit dem Namen `collection-export-JJJJ-MM-TT.json` wird heruntergeladen.
+
+Die exportierte Datei enthält alle Snippets (inkl. automatisch generierter Übersetzungen) als flaches JSON-Array. Laufzeit-Metadaten werden beim Export entfernt.
+
+#### Sammlung importieren
+
+1. Klicke auf **Import JSON** und wähle eine `.json`-Datei aus.
+2. Die Datei muss ein JSON-Array mit Snippet-Objekten enthalten (dasselbe Format wie beim Export).
+3. Beim Import werden bestehende Snippets in den Gruppen, die in der Datei enthalten sind, **ersetzt**. Gruppen, die nicht in der Importdatei vorkommen, bleiben unverändert.
+4. Nach erfolgreichem Import wird eine Zusammenfassung angezeigt (Anzahl importierter Snippets, Übersetzungen, betroffene Gruppen).
+
+> **Tipp:** Nutze die Export-Funktion, um ein Backup deiner Sammlung zu erstellen, bevor du einen Import durchführst.
+
+### Prompt-Verwaltung
+
+Über den Menüpunkt **Prompts** kannst du die LLM-Prompt-Vorlagen anpassen, die das System für die Antwortgenerierung verwendet.
+
+| Aktion | Beschreibung |
+|--------|-------------|
+| **Prompt anzeigen** | Alle verfügbaren Prompt-Vorlagen werden mit ihrem Namen und aktuellem Text aufgelistet. |
+| **Prompt bearbeiten** | Klicke auf einen Prompt, um den Text im Textfeld anzupassen. Klicke anschliessend auf **Save**, um die Änderung zu speichern. |
+| **Prompt zurücksetzen** | Klicke auf **Reset to default**, um einen Prompt auf seinen ursprünglichen Standardtext zurückzusetzen. |
+
+Änderungen an den Prompts wirken sich sofort auf alle nachfolgenden Antwortgenerierungen aus. Die angepassten Prompts werden serverseitig in einer separaten Datei gespeichert und überstehen Neustarts der Anwendung.
+
+> **Achtung:** Änderungen an den Prompts können die Qualität und das Verhalten der generierten Antworten erheblich beeinflussen. Teste Anpassungen sorgfältig.
+
+### Backup und Wiederherstellung
+
+Für die vollständige Datensicherung stehen zwei API-Endpunkte zur Verfügung (ohne grafische Oberfläche):
+
+| Endpunkt | Methode | Beschreibung |
+|----------|---------|-------------|
+| `/api/admin/backup` | GET | Lädt ein `.tar.gz`-Archiv des gesamten Datenverzeichnisses herunter (Datenbank, Vektordatenbank, hochgeladene Dokumente). |
+| `/api/admin/restore` | POST | Stellt die Anwendungsdaten aus einem zuvor erstellten `.tar.gz`-Backup wieder her. Die bestehenden Daten werden dabei vollständig ersetzt. |
+
+Diese Endpunkte erfordern einen gültigen Admin-Token und können z. B. per `curl` aufgerufen werden:
+
+```bash
+# Backup erstellen
+curl -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  https://<server>/api/admin/backup -o backup.tar.gz
+
+# Backup wiederherstellen
+curl -X POST -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -F "file=@backup.tar.gz" \
+  https://<server>/api/admin/restore
+```
+
+> **Achtung:** Die Wiederherstellung ersetzt alle bestehenden Daten (Snippets, Benutzer, Einstellungen). Die Anwendung wird dabei neu initialisiert.
 
 ---
 

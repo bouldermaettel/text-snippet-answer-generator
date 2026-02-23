@@ -137,14 +137,45 @@ class PromptUpdate(BaseModel):
     template: str = Field(..., min_length=1)
 
 
-# Collection import/export
-class CollectionImportItem(BaseModel):
-    """A snippet entry in the collection import JSON (flat format).
-
-    Auto-generated translations are separate entries with
-    ``metadata.is_generated_translation = true`` and ``metadata.parent_title``.
-    """
+# Collection import/export (grouped format)
+class TranslationEntry(BaseModel):
+    """A single language variant within a grouped snippet."""
     text: str = Field(..., min_length=1)
+    example_questions: list[str] = Field(default_factory=list)
+    is_generated_translation: bool = False
+
+
+class CollectionGroupedItem(BaseModel):
+    """A snippet with all its translations grouped under one entry.
+
+    Shared metadata (heading, category, instructions, prerequisites) is stored
+    once.  Per-language data (text, example_questions) lives inside
+    ``translations`` keyed by language code (e.g. "de", "en").
+    """
     title: str = Field(..., min_length=1)
     group: str = ""
     metadata: dict[str, Any] | None = None
+    translations: dict[str, TranslationEntry]
+
+
+# Grouped snippet list/update models
+class SnippetGroupItem(BaseModel):
+    """A snippet group as returned by the grouped list API."""
+    id: str
+    title: str | None = None
+    group: str | None = None
+    metadata: dict[str, Any] | None = None
+    translations: dict[str, TranslationEntry]
+
+
+class SnippetGroupListResponse(BaseModel):
+    snippets: list[SnippetGroupItem]
+    total: int
+
+
+class SnippetGroupUpdate(BaseModel):
+    """Update a snippet group (shared metadata + per-language texts)."""
+    title: str | None = None
+    group: str | None = None
+    metadata: dict[str, Any] | None = None
+    translations: dict[str, TranslationEntry] | None = None

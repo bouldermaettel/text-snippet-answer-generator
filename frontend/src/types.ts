@@ -31,6 +31,25 @@ export interface SnippetListResponse {
   total: number;
 }
 
+export interface TranslationEntry {
+  text: string;
+  example_questions: string[];
+  is_generated_translation: boolean;
+}
+
+export interface SnippetGroup {
+  id: string;
+  title: string | null;
+  group: string | null;
+  metadata: SnippetMetadata;
+  translations: Record<string, TranslationEntry>;
+}
+
+export interface SnippetGroupListResponse {
+  snippets: SnippetGroup[];
+  total: number;
+}
+
 export interface User {
   id: string;
   email: string;

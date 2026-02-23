@@ -72,7 +72,6 @@ export default function App() {
   const [originalQuestion, setOriginalQuestion] = useState("");
   const [questionLanguage, setQuestionLanguage] = useState<string>("");  // empty = all languages
   const [greeting, setGreeting] = useState("");
-  const [defaultClosing, setDefaultClosing] = useState("");
   const [sourceToEdit, setSourceToEdit] = useState<SourceItem | null>(null);
 
   useEffect(() => {
@@ -121,7 +120,6 @@ export default function App() {
   useEffect(() => {
     if (!token) return;
     getDefaultClosing().then((val) => {
-      setDefaultClosing(val);
       setGreeting((prev) => prev || val);
     });
   }, [token]);
