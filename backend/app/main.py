@@ -300,6 +300,15 @@ def get_groups(
     return {"groups": list_groups()}
 
 
+@app.get("/api/settings/default-closing")
+def get_default_closing(
+    current_user: Annotated[dict, Depends(get_current_user)] = None,
+):
+    """Return the configurable default closing greeting for answers."""
+    from .prompt_store import get_prompt
+    return {"closing": get_prompt("default_closing")}
+
+
 @app.post("/api/snippets")
 def post_snippets(
     payload: SnippetCreate | list[SnippetCreate],

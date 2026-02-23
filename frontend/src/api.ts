@@ -358,6 +358,14 @@ export async function getLinkedSnippets(snippetId: string): Promise<{ snippets: 
   return res.json();
 }
 
+export async function getDefaultClosing(): Promise<string> {
+  const res = await fetch(`${BASE}/api/settings/default-closing`, { headers: authHeaders() });
+  await checkUnauthorized(res);
+  if (!res.ok) return "";
+  const data: { closing: string } = await res.json();
+  return data.closing ?? "";
+}
+
 export async function listPrompts(): Promise<PromptItem[]> {
   const res = await fetch(`${BASE}/api/admin/prompts`, { headers: authHeaders() });
   await checkUnauthorized(res);

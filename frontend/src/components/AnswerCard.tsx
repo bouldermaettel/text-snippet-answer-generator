@@ -55,7 +55,7 @@ export function AnswerCard({ data, selectedSourceIds, onToggleSource, onRefine, 
 
   const handleCopy = useCallback(() => {
     const text = greeting?.trim()
-      ? `${greeting.trim()}\n\n${data.answer}`
+      ? `${data.answer}\n\n${greeting.trim()}`
       : data.answer;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
@@ -97,10 +97,10 @@ export function AnswerCard({ data, selectedSourceIds, onToggleSource, onRefine, 
             <ConfidenceBadge confidence={data.answer_confidence} label="Answer confidence" />
           </div>
         </div>
-        {greeting?.trim() && (
-          <p className="mb-2 whitespace-pre-wrap text-slate-800 dark:text-slate-200">{greeting.trim()}</p>
-        )}
         <p className="whitespace-pre-wrap text-slate-800 dark:text-slate-200">{linkifyText(data.answer)}</p>
+        {greeting?.trim() && (
+          <p className="mt-2 whitespace-pre-wrap text-slate-800 dark:text-slate-200">{greeting.trim()}</p>
+        )}
 
         {/* Refinement input */}
         <AnswerRefinement onRefine={onRefine} loading={refining} />

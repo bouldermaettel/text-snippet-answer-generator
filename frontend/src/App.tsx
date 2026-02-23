@@ -6,6 +6,7 @@ import {
   getGroups,
   getMe,
   getSnippets,
+  getDefaultClosing,
   getToken,
   healthCheck,
   isNetworkError,
@@ -71,6 +72,7 @@ export default function App() {
   const [originalQuestion, setOriginalQuestion] = useState("");
   const [questionLanguage, setQuestionLanguage] = useState<string>("");  // empty = all languages
   const [greeting, setGreeting] = useState("");
+  const [defaultClosing, setDefaultClosing] = useState("");
   const [sourceToEdit, setSourceToEdit] = useState<SourceItem | null>(null);
 
   useEffect(() => {
@@ -115,6 +117,14 @@ export default function App() {
     healthCheck().then((ok) => setBackendUnavailable(!ok));
     refreshGroups();
   }, [refreshGroups]);
+
+  useEffect(() => {
+    if (!token) return;
+    getDefaultClosing().then((val) => {
+      setDefaultClosing(val);
+      setGreeting((prev) => prev || val);
+    });
+  }, [token]);
 
   useEffect(() => {
     if (theme !== "system") return;
@@ -398,14 +408,14 @@ export default function App() {
 
               <div className="mb-8">
                 <label htmlFor="greeting" className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Grußzeile
+                  Abschlussgruss
                 </label>
-                <input
+                <textarea
                   id="greeting"
-                  type="text"
+                  rows={2}
                   value={greeting}
                   onChange={(e) => setGreeting(e.target.value)}
-                  placeholder="z.B. Guten Tag Herr Müller,"
+                  placeholder="z.B. Freundliche Grüße&#10;Ihr Team"
                   className="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
                 />
               </div>

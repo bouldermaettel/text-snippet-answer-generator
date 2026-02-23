@@ -38,7 +38,7 @@ PROMPT_DEFAULTS: dict[str, PromptDef] = {
             "If no name can be extracted at all, use a generic greeting like 'Sehr geehrte Damen und Herren,' or 'Dear Sir or Madam,'.\n"
             "2. Write the body in a polite, friendly, and casual tone — as if replying to a colleague. "
             "Be concise but helpful. The answer should be ready to copy-paste as an email response.\n"
-            "3. End with a friendly closing (e.g. 'Viele Grüße' or 'Best regards' depending on the language).\n"
+            "3. Do NOT add a closing greeting or sign-off (e.g. no 'Viele Grüße', 'Best regards', or signature). The user will add their own.\n"
             "4. If the snippets do not contain the answer, politely say so.\n"
             "5. After your complete email, on a new line write exactly SECTIONS: and then one line per snippet in order (snippet 1, 2, ...): "
             "a very short section or context for each snippet (e.g. 'Scrum Roles - Product Owner' or 'Definition of Done'). "
@@ -67,7 +67,7 @@ PROMPT_DEFAULTS: dict[str, PromptDef] = {
             "{closeness_instruction} "
             "Use the provided snippets as context. "
             "Keep the polite, casual email tone of the original answer. "
-            "The refined answer must remain a ready-to-paste email reply with greeting and closing. "
+            "The refined answer must remain a ready-to-paste email reply with greeting but without a closing sign-off (the user adds their own). "
             "Produce only the improved email reply without any explanations or meta-commentary."
         ),
     ),
@@ -108,6 +108,13 @@ PROMPT_DEFAULTS: dict[str, PromptDef] = {
             "The question should be something a user might actually ask. "
             "Be concise - output only the question, no explanations or prefixes."
         ),
+    ),
+    "default_closing": PromptDef(
+        label="Default Closing Greeting",
+        description="Default sign-off appended to generated answers (e.g. 'Mit freundlichen Grüssen\\nTeam Swissdamed'). Users can override this per question in the Grußzeile input field.",
+        group="Main Prompts",
+        placeholders=[],
+        default="Mit freundlichen Grüssen\nTeam Swissdamed",
     ),
     "example_question_user": PromptDef(
         label="Example Question – User Message",

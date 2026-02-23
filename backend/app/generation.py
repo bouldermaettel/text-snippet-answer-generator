@@ -41,18 +41,22 @@ def _resolve_provider(settings: Settings) -> str:
 
 
 def _parse_answer_and_sections(raw: str, num_sources: int) -> tuple[str, list[str | None]]:
-    """Extract answer and optional section labels from LLM output. Expects 'SECTIONS:' followed by one line per source."""
+    """Extract answer and optional section labels from LLM output.
+
+    Handles various LLM marker formats: SECTIONS:, SECTION:, SECT:,
+    or any of those without a trailing colon.
+    """
+    import re
+
     raw = (raw or "").strip()
-    sections: list[str | None] = []
-    answer = raw
-    marker = "SECTIONS:"
-    idx = raw.upper().find(marker.upper())
-    if idx >= 0:
-        answer = raw[:idx].strip()
-        rest = raw[idx + len(marker) :].strip()
+    match = re.search(r"\bSECT(?:ION)?S?\s*:", raw, re.IGNORECASE)
+    if match:
+        answer = raw[: match.start()].strip()
+        rest = raw[match.end() :].strip()
         lines = [line.strip() for line in rest.split("\n") if line.strip()][:num_sources]
         sections = [lines[i] if i < len(lines) else None for i in range(num_sources)]
     else:
+        answer = raw
         sections = [None] * num_sources
     return answer, sections
 
