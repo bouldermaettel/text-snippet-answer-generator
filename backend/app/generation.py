@@ -5,6 +5,7 @@ import logging
 from openai import AzureOpenAI, OpenAI
 
 from .config import Settings, get_settings
+from .prompt_store import get_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +59,7 @@ def _parse_answer_and_sections(raw: str, num_sources: int) -> tuple[str, list[st
 
 def _closeness_system_instruction(closeness: float) -> str:
     """Return system instruction fragment for answer_closeness (0=free, 1=word-for-word)."""
-    if closeness < 0.3:
-        return (
-            "Use the provided snippets as inspiration only. You may answer freely and rephrase; "
-            "do not restrict yourself to the exact wording."
-        )
-    if closeness > 0.7:
-        return (
-            "Your answer MUST stay as close as possible to the exact wording of the snippets. "
-            "Prefer quoting and paraphrasing; do not add new formulations or information not in the snippets."
-        )
-    return (
-        "Formulate your answer closely based on the snippets; light rephrasing is allowed. "
-        "Do not add information that is not present in the snippets."
-    )
+    return get_prompt("closeness_instruction").format(closeness=closeness)
 
 
 def generate_answer(
@@ -92,25 +80,8 @@ def generate_answer(
 
     snippets_block = "\n\n".join(f"[{i+1}] {t}" for i, t in enumerate(snippet_texts))
     closeness_instruction = _closeness_system_instruction(answer_closeness)
-    system = (
-        "You are a helpful assistant that writes polite, casual email replies in the same language as the user's input. "
-        "Answer the user's question using the provided numbered snippets. "
-        f"{closeness_instruction} "
-        "IMPORTANT formatting rules:\n"
-        "1. Try to extract the sender's name from the input text. First look for a 'Von:'/'From:' line or email signature. "
-        "If not found, fall back to the name used in the greeting/salutation of the input (e.g. 'Lieber Herr Meier' → the sender signed or was addressed as 'Meier'). "
-        "Use the LAST NAME with a formal title: 'Sehr geehrter Herr [Nachname],' / 'Sehr geehrte Frau [Nachname],' "
-        "(or 'Dear Mr [Last name],' / 'Dear Ms [Last name],' in English). "
-        "If no name can be extracted at all, use a generic greeting like 'Sehr geehrte Damen und Herren,' or 'Dear Sir or Madam,'.\n"
-        "2. Write the body in a polite, friendly, and casual tone — as if replying to a colleague. "
-        "Be concise but helpful. The answer should be ready to copy-paste as an email response.\n"
-        "3. End with a friendly closing (e.g. 'Viele Grüße' or 'Best regards' depending on the language).\n"
-        "4. If the snippets do not contain the answer, politely say so.\n"
-        "5. After your complete email, on a new line write exactly SECTIONS: and then one line per snippet in order (snippet 1, 2, ...): "
-        "a very short section or context for each snippet (e.g. 'Scrum Roles - Product Owner' or 'Definition of Done'). "
-        "One line per snippet, no numbers or bullets."
-    )
-    user = f"Question / incoming message:\n{question}\n\nSnippets:\n{snippets_block}"
+    system = get_prompt("answer_generation_system").format(closeness_instruction=closeness_instruction)
+    user = get_prompt("answer_generation_user").format(question=question, snippets_block=snippets_block)
 
     if provider == "azure":
         client = _client_azure(settings)
@@ -162,20 +133,12 @@ def refine_answer(
     snippets_block = "\n\n".join(f"[{i+1}] {t}" for i, t in enumerate(snippet_texts))
     closeness_instruction = _closeness_system_instruction(answer_closeness)
 
-    system = (
-        "You are refining an existing email reply based on user feedback. "
-        f"{closeness_instruction} "
-        "Use the provided snippets as context. "
-        "Keep the polite, casual email tone of the original answer. "
-        "The refined answer must remain a ready-to-paste email reply with greeting and closing. "
-        "Produce only the improved email reply without any explanations or meta-commentary."
-    )
-    user = (
-        f"Original Question / incoming message: {original_question}\n\n"
-        f"Original Email Reply: {original_answer}\n\n"
-        f"User's refinement request: {refinement_prompt}\n\n"
-        f"Context snippets to use:\n{snippets_block}\n\n"
-        "Please provide the refined email reply:"
+    system = get_prompt("refine_system").format(closeness_instruction=closeness_instruction)
+    user = get_prompt("refine_user").format(
+        original_question=original_question,
+        original_answer=original_answer,
+        refinement_prompt=refinement_prompt,
+        snippets_block=snippets_block,
     )
 
     if provider == "azure":
@@ -216,10 +179,7 @@ def generate_hypothetical_answer(question: str, settings: Settings | None = None
     if provider == "none":
         return ""
 
-    prompt = (
-        "Answer the following question in 1-2 short sentences, without using any external sources. "
-        "Be concise and direct.\n\nQuestion: "
-    ) + question
+    prompt = get_prompt("hyde_user").format(question=question)
 
     if provider == "azure":
         client = _client_azure(settings)
@@ -283,18 +243,8 @@ def generate_example_question(
     
     title_context = f" titled '{snippet_title}'" if snippet_title else ""
     
-    system = (
-        "You generate example questions for a knowledge base. "
-        "Given a text snippet, generate ONE clear, natural question that this snippet would answer. "
-        "The question should be something a user might actually ask. "
-        "Be concise - output only the question, no explanations or prefixes."
-    )
-    
-    user = (
-        f"Generate one example question that the following snippet{title_context} would answer:\n\n"
-        f"---\n{text_for_prompt}\n---\n\n"
-        "Question:"
-    )
+    system = get_prompt("example_question_system")
+    user = get_prompt("example_question_user").format(title_context=title_context, text_for_prompt=text_for_prompt)
     
     if provider == "azure":
         client = _client_azure(settings)

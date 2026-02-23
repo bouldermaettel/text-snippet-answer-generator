@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   backendUnreachableMessage,
   deleteSnippet,
+  exportCollection,
   getSnippets,
+  importCollection,
   isNetworkError,
   openDocumentInNewTab,
   updateSnippet,
 } from "../api";
-import type { SnippetItem } from "../types";
+import type { SnippetItem, User } from "../types";
 import { AddSnippetModal } from "./AddSnippetModal";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 import { EditSnippetModal } from "./EditSnippetModal";
@@ -17,6 +19,7 @@ type Props = {
   selectedGroups?: string[];
   onGroupsChange?: () => void;
   groups?: string[];
+  user?: User | null;
 };
 
 const LANGUAGES = [
@@ -26,7 +29,7 @@ const LANGUAGES = [
   { code: "it", label: "IT", name: "Italian" },
 ];
 
-export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [] }: Props) {
+export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [], user }: Props) {
   const [snippets, setSnippets] = useState<SnippetItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -36,11 +39,17 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
   const [snippetToEdit, setSnippetToEdit] = useState<SnippetItem | null>(null);
   const [editingGroupSnippetId, setEditingGroupSnippetId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  
+  const [importing, setImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Filter state
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [showTranslations, setShowTranslations] = useState(false);
   const [snippetSearch, setSnippetSearch] = useState("");
+
+  const isAdmin = user?.role === "admin";
 
   // Client-side filtering for search
   const filteredSnippets = snippets.filter(
@@ -109,6 +118,58 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
     onAddedOrSaved();
   };
 
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportStatus(null);
+    setError(null);
+    try {
+      const result = await importCollection(file);
+      setImportStatus(
+        `Imported ${result.imported} snippets (${result.translation_entries} translations) into group${result.groups.length !== 1 ? "s" : ""}: ${result.groups.join(", ")}` +
+        (result.replaced_groups.length > 0 ? ` (replaced: ${result.replaced_groups.join(", ")})` : "")
+      );
+      await refresh();
+      onGroupsChange?.();
+    } catch (err) {
+      setError(
+        isNetworkError(err)
+          ? backendUnreachableMessage()
+          : err instanceof Error ? err.message : "Import failed"
+      );
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    setError(null);
+    try {
+      const blob = await exportCollection(
+        selectedGroups.length ? selectedGroups : undefined,
+        selectedLanguages.length ? selectedLanguages : undefined
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `collection-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    } catch (err) {
+      setError(
+        isNetworkError(err)
+          ? backendUnreachableMessage()
+          : err instanceof Error ? err.message : "Export failed"
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -123,16 +184,51 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
           {showTranslations && " + translations"}
           {snippetSearch && ` matching "${snippetSearch}"`}
         </p>
-        <button
-          type="button"
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add snippet
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                {importing ? "Importing..." : "Import JSON"}
+              </button>
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exporting}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {exporting ? "Exporting..." : "Export JSON"}
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add snippet
+          </button>
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -192,6 +288,19 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
         </label>
       </div>
 
+      {importStatus && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200">
+          {importStatus}
+          <button
+            type="button"
+            onClick={() => setImportStatus(null)}
+            className="ml-3 text-sm font-medium underline hover:no-underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {error && (
         <div
           className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200"
@@ -241,6 +350,8 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
             const linkedSnippets = s.metadata?.linked_snippets as string[] | undefined;
             const hasGeneratedTranslations = s.metadata?.has_generated_translations as boolean | undefined;
             const isGeneratedTranslation = s.metadata?.is_generated_translation as boolean | undefined;
+            const hasInstructions = !!(s.metadata?.instructions as string | undefined);
+            const hasPrerequisites = !!(s.metadata?.prerequisites as string | undefined);
             const langFlags: Record<string, string> = { de: "DE", fr: "FR", it: "IT", en: "EN" };
             
             return (
@@ -317,10 +428,19 @@ export function CollectionView({ selectedGroups = [], onGroupsChange, groups = [
                         {langFlags[lang.toLowerCase()] ?? lang.toUpperCase()}
                       </span>
                     )}
-                    {/* Show auto-translated indicator */}
                     {hasGeneratedTranslations && (
                       <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" title="Has auto-translated versions">
                         Auto
+                      </span>
+                    )}
+                    {hasInstructions && (
+                      <span className="inline-flex rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-900/30 dark:text-teal-300" title="Has instructions/procedure">
+                        Instr.
+                      </span>
+                    )}
+                    {hasPrerequisites && (
+                      <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300" title="Has prerequisites">
+                        Prereq.
                       </span>
                     )}
                   </div>

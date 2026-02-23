@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { approveUser, createUser, deleteUser, listUsers } from "../api";
+import { approveUser, createUser, deleteUser, listUsers, updateUserRole } from "../api";
 import type { User } from "../types";
 
 export function UsersView() {
@@ -13,6 +13,7 @@ export function UsersView() {
   const [adding, setAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [changingRoleId, setChangingRoleId] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -82,6 +83,19 @@ export function UsersView() {
       setError(e instanceof Error ? e.message : "Failed to approve user");
     } finally {
       setApprovingId(null);
+    }
+  }
+
+  async function handleRoleChange(userId: string, newRole: string) {
+    setChangingRoleId(userId);
+    setError(null);
+    try {
+      await updateUserRole(userId, newRole);
+      await loadUsers();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to change role");
+    } finally {
+      setChangingRoleId(null);
     }
   }
 
@@ -212,7 +226,15 @@ export function UsersView() {
                     {u.email}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
-                    {u.role}
+                    <select
+                      value={u.role}
+                      onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                      disabled={changingRoleId === u.id}
+                      className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    >
+                      <option value="user">user</option>
+                      <option value="admin">admin</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
                     {u.status ?? "active"}

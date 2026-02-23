@@ -900,6 +900,50 @@ def delete_snippet(snippet_id: str) -> bool:
     return True
 
 
+def delete_snippets_by_group(group_name: str) -> int:
+    """Delete all snippets (and their example questions) belonging to a group.
+
+    Returns the number of logical snippets deleted.
+    """
+    coll = _get_collection()
+    n = coll.count()
+    if n == 0:
+        return 0
+
+    fetch_limit = min(max(n, 10000), 500_000)
+    result = coll.get(
+        include=["metadatas"],
+        limit=fetch_limit,
+    )
+    ids_to_delete: list[str] = []
+    parent_ids: set[str] = set()
+
+    target = group_name if group_name else ""
+    for i, doc_id in enumerate(result["ids"]):
+        meta = (result["metadatas"] or [{}])[i] or {}
+        if (meta.get("group") or "") == target:
+            ids_to_delete.append(doc_id)
+            pid = meta.get("parent_id") or doc_id
+            parent_ids.add(pid)
+
+    if ids_to_delete:
+        for batch_start in range(0, len(ids_to_delete), 5000):
+            coll.delete(ids=ids_to_delete[batch_start : batch_start + 5000])
+
+    eq_coll = _get_example_questions_collection()
+    for pid in parent_ids:
+        _delete_example_questions(pid)
+        for lang in ("en", "de", "fr", "it", "es", "pt", "nl", "pl", "ru", "zh", "ja", "ko"):
+            tr_id = f"{pid}_tr_{lang}"
+            eq_result = eq_coll.get(where={"snippet_id": tr_id}, include=[])
+            if eq_result["ids"]:
+                eq_coll.delete(ids=eq_result["ids"])
+
+    logger.info("Deleted %d chunks (%d logical snippets) from group '%s'",
+                len(ids_to_delete), len(parent_ids), group_name)
+    return len(parent_ids)
+
+
 def update_example_questions(snippet_id: str, example_questions: list[str]) -> bool:
     """Update example questions for a snippet (original or translation).
     

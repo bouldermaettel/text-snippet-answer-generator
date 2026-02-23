@@ -21,6 +21,7 @@ import { LoginRegister } from "./components/LoginRegister";
 import { QuestionInput } from "./components/QuestionInput";
 import { Sidebar } from "./components/Sidebar";
 import type { Theme } from "./components/ThemeToggle";
+import { PromptsView } from "./components/PromptsView";
 import { UsersView } from "./components/UsersView";
 
 const THEME_KEY = "theme";
@@ -44,7 +45,7 @@ function applyTheme(theme: Theme) {
   else root.classList.remove("dark");
 }
 
-type Tab = "ask" | "collection" | "users";
+type Tab = "ask" | "collection" | "users" | "prompts";
 
 export default function App() {
   const [token, setTokenState] = useState<string | null>(() => getToken());
@@ -69,6 +70,7 @@ export default function App() {
   const [contextSourceIds, setContextSourceIds] = useState<string[]>([]);
   const [originalQuestion, setOriginalQuestion] = useState("");
   const [questionLanguage, setQuestionLanguage] = useState<string>("");  // empty = all languages
+  const [greeting, setGreeting] = useState("");
   const [sourceToEdit, setSourceToEdit] = useState<SourceItem | null>(null);
 
   useEffect(() => {
@@ -394,6 +396,20 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="mb-8">
+                <label htmlFor="greeting" className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Grußzeile
+                </label>
+                <input
+                  id="greeting"
+                  type="text"
+                  value={greeting}
+                  onChange={(e) => setGreeting(e.target.value)}
+                  placeholder="z.B. Guten Tag Herr Müller,"
+                  className="w-full max-w-md rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
+                />
+              </div>
+
               {error && (
                 <div
                   className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200"
@@ -417,6 +433,7 @@ export default function App() {
                   onRefine={handleRefine}
                   refining={refining}
                   onEditSource={setSourceToEdit}
+                  greeting={greeting}
                 />
               )}
 
@@ -453,11 +470,16 @@ export default function App() {
               selectedGroups={selectedGroups}
               onGroupsChange={refreshGroups}
               groups={groups}
+              user={user}
             />
           )}
 
           {tab === "users" && user?.role === "admin" && (
             <UsersView />
+          )}
+
+          {tab === "prompts" && user?.role === "admin" && (
+            <PromptsView />
           )}
         </div>
       </main>

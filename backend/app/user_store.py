@@ -171,6 +171,16 @@ def set_user_status(user_id: str, status: str) -> bool:
         conn.close()
 
 
+def set_user_role(user_id: str, role: str) -> bool:
+    conn = _get_connection()
+    try:
+        cur = conn.execute("UPDATE users SET role = ? WHERE id = ?", (role, user_id))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
 def delete_user(user_id: str) -> bool:
     conn = _get_connection()
     try:

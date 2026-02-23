@@ -50,6 +50,8 @@ export function SourceCard({ source, index, isSelected, onToggleSelect, showSele
   const translationSource = meta?.translation_source as string | undefined;
   const hasGeneratedTranslations = meta?.has_generated_translations as boolean | undefined;
   const availableLanguages = meta?.available_languages as string[] | undefined;
+  const instructions = meta?.instructions as string | undefined;
+  const prerequisites = meta?.prerequisites as string | undefined;
   const langInfo = language ? languageInfo(language) : null;
   const hasTranslations = (linkedSnippets && linkedSnippets.length > 0) || hasGeneratedTranslations;
 
@@ -151,6 +153,32 @@ export function SourceCard({ source, index, isSelected, onToggleSelect, showSele
         <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{source.section_label}</p>
       )}
       <p className="whitespace-pre-wrap text-slate-700 dark:text-slate-300">{displayText}</p>
+
+      {(instructions || prerequisites) && (
+        <div className="mt-3 space-y-2">
+          {instructions && (
+            <details className="group rounded-lg border border-teal-200 bg-teal-50 dark:border-teal-800 dark:bg-teal-900/20">
+              <summary className="cursor-pointer select-none px-3 py-1.5 text-xs font-medium text-teal-700 dark:text-teal-300">
+                Instructions / Procedure
+              </summary>
+              <p className="whitespace-pre-wrap border-t border-teal-200 px-3 py-2 text-sm text-teal-800 dark:border-teal-800 dark:text-teal-200">
+                {instructions}
+              </p>
+            </details>
+          )}
+          {prerequisites && (
+            <details className="group rounded-lg border border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/20">
+              <summary className="cursor-pointer select-none px-3 py-1.5 text-xs font-medium text-rose-700 dark:text-rose-300">
+                Prerequisites
+              </summary>
+              <p className="whitespace-pre-wrap border-t border-rose-200 px-3 py-2 text-sm text-rose-800 dark:border-rose-800 dark:text-rose-200">
+                {prerequisites}
+              </p>
+            </details>
+          )}
+        </div>
+      )}
+
       <div className="mt-3 flex items-center justify-between">
         <div>
           {isLong && (

@@ -84,9 +84,10 @@ class UserResponse(BaseModel):
     created_at: str | None = None
 
 
-class UserStatusUpdate(BaseModel):
-    """Admin sets user status (e.g. approve = active)."""
-    status: str  # "active"
+class UserUpdate(BaseModel):
+    """Admin updates user fields (status and/or role)."""
+    status: str | None = None
+    role: str | None = None
 
 
 class TokenResponse(BaseModel):
@@ -116,3 +117,34 @@ class RefineResponse(BaseModel):
     answer: str
     sources: list[SourceItem]  # Sources that were used (selected ones)
     answer_confidence: float = Field(..., ge=0, le=1)
+
+
+# Prompt management (admin)
+class PromptItem(BaseModel):
+    """A single prompt template with metadata."""
+    key: str
+    label: str
+    description: str
+    placeholders: list[str]
+    group: str
+    template: str
+    default_template: str
+    is_default: bool
+
+
+class PromptUpdate(BaseModel):
+    """Admin updates a prompt template."""
+    template: str = Field(..., min_length=1)
+
+
+# Collection import/export
+class CollectionImportItem(BaseModel):
+    """A snippet entry in the collection import JSON (flat format).
+
+    Auto-generated translations are separate entries with
+    ``metadata.is_generated_translation = true`` and ``metadata.parent_title``.
+    """
+    text: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    group: str = ""
+    metadata: dict[str, Any] | None = None

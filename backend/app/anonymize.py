@@ -29,7 +29,7 @@ Replace the following types of sensitive data:
 - Bank account / IBAN numbers -> [ACCOUNT]
 - Credit card numbers -> [CREDIT_CARD]
 - License plate numbers -> [LICENSE_PLATE]
-- Website URLs that identify a specific person or company -> [URL]
+- Website URLs must be kept exactly as-is -- do NOT replace or alter them.
 
 Important rules:
 1. Keep the rest of the text EXACTLY as-is (same language, formatting, line breaks).

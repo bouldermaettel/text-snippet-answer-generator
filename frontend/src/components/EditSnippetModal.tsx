@@ -35,6 +35,12 @@ export function EditSnippetModal({ snippet, groups, onSaved, onCancel }: Props) 
       ? (snippet.metadata.example_questions as string[]).join("\n")
       : ""
   );
+  const [instructions, setInstructions] = useState(
+    (snippet.metadata?.instructions as string) ?? ""
+  );
+  const [prerequisites, setPrerequisites] = useState(
+    (snippet.metadata?.prerequisites as string) ?? ""
+  );
 
   function buildMetadata(): SnippetMetadata {
     const meta: Record<string, unknown> = { ...snippet.metadata };
@@ -65,7 +71,12 @@ export function EditSnippetModal({ snippet, groups, onSaved, onCancel }: Props) 
     if (questions.length > 0) meta.example_questions = questions;
     else delete meta.example_questions;
     
-    // Keep other existing metadata fields (like source_document_url)
+    if (instructions.trim()) meta.instructions = instructions.trim();
+    else delete meta.instructions;
+
+    if (prerequisites.trim()) meta.prerequisites = prerequisites.trim();
+    else delete meta.prerequisites;
+
     return Object.keys(meta).length > 0 ? meta : null;
   }
 
@@ -250,6 +261,32 @@ export function EditSnippetModal({ snippet, groups, onSaved, onCancel }: Props) 
                   onChange={(e) => setExampleQuestions(e.target.value)}
                   placeholder="Enter example questions that should match this snippet (one per line)..."
                   rows={2}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-snippet-instructions" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Instructions / Procedure (optional)
+                </label>
+                <textarea
+                  id="edit-snippet-instructions"
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  placeholder="Internal procedure or instructions for staff..."
+                  rows={3}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-snippet-prerequisites" className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Prerequisites (optional)
+                </label>
+                <textarea
+                  id="edit-snippet-prerequisites"
+                  value={prerequisites}
+                  onChange={(e) => setPrerequisites(e.target.value)}
+                  placeholder="Triggering questions, scenarios or conditions..."
+                  rows={3}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>

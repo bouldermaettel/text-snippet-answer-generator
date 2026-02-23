@@ -1,5 +1,6 @@
 """FastAPI app: /api/ask, /api/snippets, /api/auth, /api/users."""
 import io
+import json
 import logging
 import os
 import re
@@ -8,11 +9,11 @@ import tarfile
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, File, Form, FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .auth import authenticate_user, create_access_token, get_current_admin, get_current_user
@@ -21,6 +22,9 @@ from .generation import generate_answer, refine_answer
 from .models import (
     AskRequest,
     AskResponse,
+    CollectionImportItem,
+    PromptItem,
+    PromptUpdate,
     RefineRequest,
     RefineResponse,
     SourceItem,
@@ -34,13 +38,13 @@ from .models import (
     UserCreateAdmin,
     UserLogin,
     UserResponse,
-    UserStatusUpdate,
+    UserUpdate,
 )
 from .retrieval import answer_confidence, retrieve_and_score
-from .store import add_snippets, delete_snippet, get_linked_snippets, get_snippet_metadata, list_groups, list_snippets, update_example_questions, update_snippet
+from .store import add_snippets, delete_snippet, delete_snippets_by_group, get_linked_snippets, get_snippet_metadata, list_groups, list_snippets, update_example_questions, update_snippet
 from .anonymize import anonymize_text
 from .upload import extract_text_from_bytes
-from .user_store import count_admins, create_user, delete_user, get_user_by_email, get_user_by_id, init_db, list_users, set_user_status
+from .user_store import count_admins, create_user, delete_user, get_user_by_email, get_user_by_id, init_db, list_users, set_user_role, set_user_status
 
 
 def _strip_env_value(s: str | None) -> str | None:
@@ -549,18 +553,27 @@ def create_user_admin(
 
 
 @app.patch("/api/users/{user_id}", response_model=UserResponse)
-def update_user_status(
+def update_user(
     user_id: str,
-    payload: UserStatusUpdate,
+    payload: UserUpdate,
     current_user: Annotated[dict, Depends(get_current_admin)] = None,
 ):
-    """Set user status (admin only). Used to approve pending users."""
-    if payload.status not in ("active",):
+    """Update user status and/or role (admin only)."""
+    if payload.status is None and payload.role is None:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+    if payload.status is not None and payload.status not in ("active",):
         raise HTTPException(status_code=400, detail="status must be 'active'")
+    if payload.role is not None and payload.role not in ("user", "admin"):
+        raise HTTPException(status_code=400, detail="role must be 'user' or 'admin'")
     target = get_user_by_id(user_id)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
-    set_user_status(user_id, payload.status)
+    if payload.role is not None and payload.role != target["role"]:
+        if target["role"] == "admin" and payload.role != "admin" and count_admins() <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote the last admin")
+        set_user_role(user_id, payload.role)
+    if payload.status is not None:
+        set_user_status(user_id, payload.status)
     updated = get_user_by_id(user_id)
     return UserResponse(
         id=updated["id"],
@@ -584,6 +597,68 @@ def delete_user_endpoint(
         raise HTTPException(status_code=400, detail="Cannot delete the last admin")
     delete_user(user_id)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Admin: Prompt Management
+# ---------------------------------------------------------------------------
+
+@app.get("/api/admin/prompts", response_model=list[PromptItem])
+def get_prompts(
+    current_user: Annotated[dict, Depends(get_current_admin)],
+):
+    """List all prompt templates with current values and metadata (admin only)."""
+    from .prompt_store import list_prompts
+    return [PromptItem(**p) for p in list_prompts()]
+
+
+@app.put("/api/admin/prompts/{key}", response_model=PromptItem)
+def update_prompt(
+    key: str,
+    payload: PromptUpdate,
+    current_user: Annotated[dict, Depends(get_current_admin)],
+):
+    """Update a prompt template (admin only)."""
+    from .prompt_store import PROMPT_DEFAULTS, set_prompt, get_prompt as _get_prompt
+
+    if key not in PROMPT_DEFAULTS:
+        raise HTTPException(status_code=404, detail=f"Unknown prompt key: {key}")
+    set_prompt(key, payload.template)
+    defn = PROMPT_DEFAULTS[key]
+    return PromptItem(
+        key=key,
+        label=defn.label,
+        description=defn.description,
+        placeholders=defn.placeholders,
+        group=defn.group,
+        template=payload.template,
+        default_template=defn.default,
+        is_default=False,
+    )
+
+
+@app.post("/api/admin/prompts/{key}/reset", response_model=PromptItem)
+def reset_prompt(
+    key: str,
+    current_user: Annotated[dict, Depends(get_current_admin)],
+):
+    """Reset a prompt template to its default (admin only)."""
+    from .prompt_store import PROMPT_DEFAULTS, reset_prompt as _reset_prompt
+
+    if key not in PROMPT_DEFAULTS:
+        raise HTTPException(status_code=404, detail=f"Unknown prompt key: {key}")
+    _reset_prompt(key)
+    defn = PROMPT_DEFAULTS[key]
+    return PromptItem(
+        key=key,
+        label=defn.label,
+        description=defn.description,
+        placeholders=defn.placeholders,
+        group=defn.group,
+        template=defn.default,
+        default_template=defn.default,
+        is_default=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -685,6 +760,204 @@ def restore_data(
     _seed_admin_if_needed()
 
     return {"ok": True, "message": "Data restored successfully. ChromaDB will reconnect on next request."}
+
+
+# ---------------------------------------------------------------------------
+# Admin: Collection Import / Export
+# ---------------------------------------------------------------------------
+
+_RUNTIME_METADATA_KEYS = frozenset({
+    "has_generated_translations", "available_languages",
+    "is_generated_translation", "translation_source",
+})
+
+
+def _clean_metadata_for_export(metadata: dict[str, Any] | None) -> dict[str, Any]:
+    """Strip runtime-only computed fields from metadata for export."""
+    if not metadata:
+        return {}
+    return {k: v for k, v in metadata.items() if k not in _RUNTIME_METADATA_KEYS}
+
+
+@app.post("/api/admin/import-collection")
+def import_collection(
+    current_user: Annotated[dict, Depends(get_current_admin)],
+    file: UploadFile = File(...),
+):
+    """Import a collection from a JSON file (admin only).
+
+    The file is a flat JSON array where every snippet -- original and
+    auto-generated translation alike -- is its own top-level entry.
+    Auto-translations are identified by ``metadata.is_generated_translation``
+    and linked to their parent via ``metadata.parent_title``.
+
+    Existing snippets in the group(s) present in the file are **replaced**.
+    """
+    if not file.filename or not file.filename.endswith(".json"):
+        raise HTTPException(status_code=400, detail="File must be a .json file")
+
+    try:
+        content = file.file.read()
+        raw = json.loads(content)
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+
+    if not isinstance(raw, list):
+        raise HTTPException(status_code=400, detail="JSON must be an array of snippet objects")
+
+    try:
+        entries = [CollectionImportItem(**item) for item in raw]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Validation error: {e}")
+
+    if not entries:
+        raise HTTPException(status_code=400, detail="No snippets in file")
+
+    originals = [e for e in entries if not (e.metadata or {}).get("is_generated_translation")]
+    auto_translations = [e for e in entries if (e.metadata or {}).get("is_generated_translation")]
+
+    groups_in_file: set[str] = {e.group for e in entries}
+    replaced_groups: list[str] = []
+    for g in groups_in_file:
+        count = delete_snippets_by_group(g)
+        if count > 0:
+            replaced_groups.append(g)
+
+    items: list[dict] = []
+    for entry in originals:
+        metadata = dict(entry.metadata) if entry.metadata else {}
+        items.append({
+            "text": entry.text,
+            "title": entry.title,
+            "metadata": metadata if metadata else None,
+            "group": entry.group,
+        })
+
+    ids = add_snippets(items, skip_translation=True)
+    title_to_id = {originals[i].title: ids[i] for i in range(len(ids))}
+
+    from .store import _chunk_text, _get_collection, _index_example_questions
+    from .embeddings import embed
+
+    settings = get_settings()
+    chunk_size = settings.chunk_size
+    overlap = settings.chunk_overlap
+    coll = _get_collection()
+
+    tr_count = 0
+    for entry in auto_translations:
+        meta = dict(entry.metadata) if entry.metadata else {}
+        parent_title = meta.get("parent_title", "")
+        parent_id = title_to_id.get(parent_title)
+        if not parent_id:
+            logger.warning("Skipping translation '%s': parent '%s' not found", entry.title, parent_title)
+            continue
+
+        lang = meta.get("language", "")
+        if not lang:
+            continue
+
+        tr_text = entry.text.strip()
+        if not tr_text:
+            continue
+
+        chunks = _chunk_text(tr_text, chunk_size, overlap)
+        tr_ids: list[str] = []
+        tr_docs: list[str] = []
+        tr_metas: list[dict] = []
+        for idx, chunk in enumerate(chunks):
+            base_id = f"{parent_id}_tr_{lang}"
+            doc_id = base_id if len(chunks) == 1 else f"{base_id}_{idx}"
+            chunk_meta: dict[str, Any] = {
+                "title": parent_title,
+                "parent_id": parent_id,
+                "chunk_index": str(idx),
+                "group": entry.group,
+                "original_language": meta.get("original_language", ""),
+                "translation_language": lang,
+                "is_translation": "true",
+            }
+            enriched = dict(meta)
+            enriched.pop("is_generated_translation", None)
+            enriched.pop("parent_title", None)
+            enriched["translation_source"] = "generated"
+            chunk_meta["metadata_json"] = json.dumps(enriched)
+            tr_ids.append(doc_id)
+            tr_docs.append(chunk)
+            tr_metas.append(chunk_meta)
+
+        if tr_ids:
+            embeddings = embed(tr_docs).tolist()
+            coll.add(ids=tr_ids, embeddings=embeddings, documents=tr_docs, metadatas=tr_metas)
+            tr_count += 1
+
+        eq = meta.get("example_questions", [])
+        if eq and isinstance(eq, list):
+            _index_example_questions(f"{parent_id}_tr_{lang}", eq, parent_title, entry.group)
+
+    return {
+        "imported": len(ids),
+        "translation_entries": tr_count,
+        "groups": sorted(groups_in_file),
+        "replaced_groups": sorted(replaced_groups),
+    }
+
+
+@app.get("/api/admin/export-collection")
+def export_collection(
+    current_user: Annotated[dict, Depends(get_current_admin)],
+    group: Annotated[list[str] | None, Query()] = None,
+    language: Annotated[list[str] | None, Query()] = None,
+):
+    """Export snippets as a flat JSON file (admin only).
+
+    Returns a flat array where every snippet (original and auto-generated
+    translation) is its own top-level entry.  Auto-translations have
+    ``metadata.is_generated_translation = true`` and ``metadata.parent_title``.
+    """
+    all_snippets, _ = list_snippets(
+        limit=100_000, offset=0,
+        group_names=group if group and len(group) > 0 else None,
+        languages=language if language and len(language) > 0 else None,
+        include_translations=True,
+    )
+
+    # Build id -> title map for originals so we can set parent_title on translations
+    id_to_title: dict[str, str] = {}
+    for s in all_snippets:
+        meta = s.get("metadata", {})
+        if not meta.get("is_generated_translation"):
+            id_to_title[s["id"]] = s.get("title", "")
+
+    output: list[dict[str, Any]] = []
+    for s in all_snippets:
+        meta = s.get("metadata", {})
+        clean_meta = _clean_metadata_for_export(meta)
+
+        if meta.get("is_generated_translation"):
+            raw_id = s["id"]
+            parent_id = raw_id.split("_tr_")[0] if "_tr_" in raw_id else raw_id
+            clean_meta["is_generated_translation"] = True
+            clean_meta["parent_title"] = id_to_title.get(parent_id, "")
+
+        output.append({
+            "text": s["text"],
+            "title": s.get("title") or "",
+            "group": s.get("group") or "",
+            "metadata": clean_meta,
+        })
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    group_suffix = f"-{group[0]}" if group and len(group) == 1 else ""
+    filename = f"collection{group_suffix}-{ts}.json"
+
+    json_bytes = json.dumps(output, ensure_ascii=False, indent=2).encode("utf-8")
+    buf = io.BytesIO(json_bytes)
+    return StreamingResponse(
+        buf,
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @app.get("/health")

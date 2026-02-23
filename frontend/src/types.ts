@@ -58,3 +58,14 @@ export interface RefineResponse {
   sources: SourceItem[];
   answer_confidence: number;
 }
+
+export interface PromptItem {
+  key: string;
+  label: string;
+  description: string;
+  placeholders: string[];
+  group: string;
+  template: string;
+  default_template: string;
+  is_default: boolean;
+}

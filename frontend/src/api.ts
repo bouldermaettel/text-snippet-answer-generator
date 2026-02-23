@@ -1,4 +1,4 @@
-import type { AskResponse, RefineResponse, SnippetItem, SnippetListResponse, SnippetMetadata, SourceItem, TokenResponse, User } from "./types";
+import type { AskResponse, PromptItem, RefineResponse, SnippetItem, SnippetListResponse, SnippetMetadata, SourceItem, TokenResponse, User } from "./types";
 
 const BASE = "";
 /** Base URL for document links (e.g. '' for same-origin, or 'http://localhost:8000' if you need to open the backend directly). */
@@ -134,6 +134,17 @@ export async function approveUser(userId: string): Promise<User> {
     method: "PATCH",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ status: "active" }),
+  });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function updateUserRole(userId: string, role: string): Promise<User> {
+  const res = await fetch(`${BASE}/api/users/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ role }),
   });
   await checkUnauthorized(res);
   if (!res.ok) throw new Error(await res.text());
@@ -345,4 +356,70 @@ export async function getLinkedSnippets(snippetId: string): Promise<{ snippets: 
   await checkUnauthorized(res);
   if (!res.ok) throw new Error(`Failed to fetch linked snippets: ${res.status}`);
   return res.json();
+}
+
+export async function listPrompts(): Promise<PromptItem[]> {
+  const res = await fetch(`${BASE}/api/admin/prompts`, { headers: authHeaders() });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function updatePrompt(key: string, template: string): Promise<PromptItem> {
+  const res = await fetch(`${BASE}/api/admin/prompts/${key}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ template }),
+  });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function resetPrompt(key: string): Promise<PromptItem> {
+  const res = await fetch(`${BASE}/api/admin/prompts/${key}/reset`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function importCollection(
+  file: File
+): Promise<{ imported: number; translation_entries: number; groups: string[]; replaced_groups: string[] }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}/api/admin/import-collection`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: form,
+  });
+  await checkUnauthorized(res);
+  if (!res.ok) {
+    const t = await res.text();
+    let msg = t;
+    try {
+      const body = JSON.parse(t);
+      if (body.detail) msg = body.detail;
+    } catch { /* use raw text */ }
+    throw new Error(msg || `Import failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function exportCollection(
+  groups?: string[],
+  languages?: string[]
+): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (groups?.length) groups.forEach((g) => params.append("group", g));
+  if (languages?.length) languages.forEach((l) => params.append("language", l));
+  const qs = params.toString();
+  const url = `${BASE}/api/admin/export-collection${qs ? `?${qs}` : ""}`;
+  const res = await fetch(url, { headers: authHeaders() });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+  return res.blob();
 }
