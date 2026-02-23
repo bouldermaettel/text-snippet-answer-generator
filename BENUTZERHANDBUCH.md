@@ -5,15 +5,19 @@
 1. [Überblick](#überblick)
 2. [Anmeldung und Registrierung](#anmeldung-und-registrierung)
 3. [Die Sammlung (Collection)](#die-sammlung-collection)
-   - [Snippets anzeigen und filtern](#snippets-anzeigen-und-filtern)
+   - [Gruppierte Snippet-Ansicht](#gruppierte-snippet-ansicht)
+   - [Snippets filtern](#snippets-filtern)
    - [Snippet manuell hinzufügen](#snippet-manuell-hinzufügen)
    - [Dateien hochladen](#dateien-hochladen)
-   - [Snippet bearbeiten](#snippet-bearbeiten)
+   - [Snippet bearbeiten (Mehrsprachiger Editor)](#snippet-bearbeiten-mehrsprachiger-editor)
+   - [Gruppe direkt ändern](#gruppe-direkt-ändern)
    - [Snippet löschen](#snippet-löschen)
 4. [Fragen stellen (Ask)](#fragen-stellen-ask)
    - [Suchbereich festlegen](#suchbereich-festlegen)
    - [Erweiterte Optionen](#erweiterte-optionen)
    - [Antwort und Quellen](#antwort-und-quellen)
+   - [Abschlussgruss](#abschlussgruss)
+   - [Antwort kopieren](#antwort-kopieren)
 5. [Antwort verfeinern (Refine)](#antwort-verfeinern-refine)
 6. [Quellenkarten und verknüpfte Sprachen](#quellenkarten-und-verknüpfte-sprachen)
 7. [Administration (nur Admins)](#administration-nur-admins)
@@ -56,15 +60,22 @@ Gib deine E-Mail-Adresse und dein Passwort ein und klicke auf **Anmelden**. Nach
 
 Die Sammlung ist der zentrale Ort, an dem alle deine Textbausteine (Snippets) verwaltet werden. Du erreichst die Sammlung über den Menüpunkt **Collection** in der Seitenleiste.
 
-### Snippets anzeigen und filtern
+### Gruppierte Snippet-Ansicht
 
-In der Sammlungsansicht siehst du alle vorhandenen Snippets als Karten. Um gezielt nach Snippets zu suchen, stehen dir mehrere Filtermöglichkeiten zur Verfügung:
+Snippets werden in der Sammlung als **gruppierte Karten** angezeigt. Jede Karte fasst alle Sprachversionen eines Snippets zusammen:
+
+- **Sprach-Badges** zeigen die verfügbaren Sprachen an (z. B. DE, EN, FR, IT). Ein Klick auf einen Sprach-Badge zeigt die Vorschau in dieser Sprache.
+- Automatisch generierte Übersetzungen sind mit einem **Stern (\*)** gekennzeichnet und farblich hervorgehoben.
+- **Metadaten-Badges** zeigen vorhandene Zusatzinformationen an: Überschrift, Kategorie, Anweisungen (teal „Instr.") und Voraussetzungen (rosa „Prereq.").
+
+### Snippets filtern
+
+Um gezielt nach Snippets zu suchen, stehen dir mehrere Filtermöglichkeiten zur Verfügung:
 
 | Filter | Beschreibung |
 |--------|-------------|
 | **Gruppe** | Wähle in der Seitenleiste eine bestimmte Gruppe aus, um nur deren Snippets anzuzeigen. |
 | **Sprache** | Filtere nach Sprache (Deutsch, Englisch, Französisch, Italienisch). |
-| **Generierte Übersetzungen** | Aktiviere „Show generated translations", um auch automatisch übersetzte Snippets anzuzeigen. |
 | **Textsuche** | Gib einen Suchbegriff ein, um Snippets nach Titel oder Inhalt zu durchsuchen. |
 
 ### Snippet manuell hinzufügen
@@ -95,14 +106,31 @@ Anstatt Snippets manuell einzugeben, kannst du auch Dateien importieren:
 4. Optional kannst du **PII anonymisieren** aktivieren.
 5. Jede hochgeladene Datei wird als ein eigenes Snippet angelegt. Bei PDF- und Word-Dateien wird der Originaltext extrahiert und das Originaldokument gespeichert, sodass es später über „View original document" abgerufen werden kann.
 
-### Snippet bearbeiten
+### Snippet bearbeiten (Mehrsprachiger Editor)
 
 1. Klicke auf einer Snippet-Karte auf **Edit**.
-2. Im Bearbeitungsdialog kannst du alle Felder ändern:
-   - Titel, Gruppe, Sprache, Text
-   - Erweiterte Metadaten (Überschrift, Kategorie, verknüpfte Snippets)
-   - **Beispielfragen** – Gib hier Fragen ein (eine pro Zeile), die typischerweise zu diesem Snippet gestellt werden. Diese verbessern die Suchqualität bei der Fragebeantwortung.
-3. Klicke auf **Save**, um die Änderungen zu speichern.
+2. Es öffnet sich der **gruppierte Editor** mit Sprach-Tabs:
+   - Oben siehst du einen Tab pro verfügbarer Sprache (z. B. DE, EN, FR, IT). Automatisch übersetzte Sprachen sind mit einem **Stern (\*)** markiert.
+   - Wähle einen Tab, um den Text und die Beispielfragen für diese Sprachversion zu bearbeiten.
+3. Im oberen Bereich des Dialogs befinden sich die **gemeinsamen Felder**, die für alle Sprachversionen gelten:
+   - **Titel** – Name des Snippets.
+   - **Gruppe** – Zugehörige Gruppe (auswählbar oder neu erstellbar).
+   - **Überschrift** – Optionale Abschnittsbezeichnung.
+   - **Kategorie** – Optionale inhaltliche Kategorie.
+   - **Anweisungen / Verfahren** – Optionale Handlungsanweisungen oder Verfahrensbeschreibungen, die im Quellenkarten-Bereich als ausklappbarer Abschnitt angezeigt werden.
+   - **Voraussetzungen** – Optionale Voraussetzungen, die ebenfalls als ausklappbarer Abschnitt auf der Quellenkarte erscheinen.
+4. Pro Sprach-Tab kannst du bearbeiten:
+   - **Text** – Der Textinhalt in dieser Sprache.
+   - **Beispielfragen** – Typische Fragen zu diesem Snippet (eine pro Zeile). Diese verbessern die Suchqualität bei der Fragebeantwortung erheblich.
+5. Klicke auf **Save**, um die Änderungen zu speichern.
+
+### Gruppe direkt ändern
+
+Du kannst die Gruppenzugehörigkeit eines Snippets direkt in der Sammlungsansicht ändern, ohne den vollständigen Bearbeitungsdialog zu öffnen:
+
+1. Klicke auf den **Gruppen-Badge** (den farbigen Tag mit dem Gruppennamen) auf einer Snippet-Karte.
+2. Es öffnet sich ein Dropdown, in dem du eine bestehende Gruppe auswählen oder einen neuen Gruppennamen eingeben kannst.
+3. Die Änderung wird sofort gespeichert.
 
 ### Snippet löschen
 
@@ -121,6 +149,8 @@ Die Kernfunktion der Anwendung. Wechsle über die Seitenleiste zum Bereich **Ask
 2. Klicke auf **Ask** oder drücke die **Eingabetaste**.
 
 Die Anwendung durchsucht deine Snippet-Sammlung, findet die relevantesten Textbausteine und generiert eine Antwort.
+
+> **Tipp:** Mit **Shift+Enter** kannst du im Fragefeld einen Zeilenumbruch einfügen, ohne die Frage abzusenden.
 
 ### Suchbereich festlegen
 
@@ -145,12 +175,23 @@ Oberhalb des Eingabefeldes kannst du den Suchbereich einschränken:
 
 Nach dem Absenden der Frage erhältst du:
 
-- **Antwort** – Der generierte Antworttext.
+- **Antwort** – Der generierte Antworttext. URLs in der Antwort werden automatisch als klickbare Links dargestellt.
 - **Antwort-Konfidenz** – Ein Prozentwert, der angibt, wie sicher das System bezüglich der Antwort ist:
   - **Grün (hoch):** Hohe Übereinstimmung mit den Quellen.
   - **Gelb (mittel):** Mäßige Übereinstimmung.
   - **Rot (niedrig):** Geringe Übereinstimmung – die Antwort sollte kritisch geprüft werden.
-- **Quellenkarten** – Unterhalb der Antwort werden die verwendeten Quell-Snippets aufgelistet (siehe nächster Abschnitt).
+- **Quellenkarten** – Unterhalb der Antwort werden die verwendeten Quell-Snippets aufgelistet (siehe [Quellenkarten und verknüpfte Sprachen](#quellenkarten-und-verknüpfte-sprachen)).
+
+### Abschlussgruss
+
+Unterhalb der Antwort wird automatisch ein **Abschlussgruss** angezeigt. Dieser wird vom Server vorgegeben und kann pro Sitzung im dafür vorgesehenen Textfeld angepasst werden.
+
+- Der Standard-Abschlussgruss wird vom Administrator über die **Prompt-Verwaltung** festgelegt (Prompt: `default_closing`).
+- Änderungen am Abschlussgruss im Textfeld gelten nur für die aktuelle Sitzung und werden nicht dauerhaft gespeichert.
+
+### Antwort kopieren
+
+Klicke auf die Schaltfläche **Kopieren** oberhalb der Antwort, um den gesamten Antworttext inklusive Abschlussgruss in die Zwischenablage zu kopieren. Nach erfolgreichem Kopieren wechselt die Beschriftung kurzzeitig zu „Kopiert".
 
 ---
 
@@ -169,6 +210,8 @@ Wenn die generierte Antwort nicht deinen Vorstellungen entspricht, kannst du sie
 
 Die verfeinerte Antwort ersetzt die bisherige Antwort. Die Quellenkarten bleiben erhalten, sodass du den Vorgang beliebig oft wiederholen kannst.
 
+> **Tipp:** Mit **Shift+Enter** kannst du auch im Verfeinerungsfeld einen Zeilenumbruch einfügen, ohne die Verfeinerung abzusenden.
+
 ---
 
 ## Quellenkarten und verknüpfte Sprachen
@@ -179,8 +222,10 @@ Jede Quellenkarte zeigt folgende Informationen:
 |---------|-------------|
 | **Titel / Abschnittsbezeichnung** | Name und ggf. Abschnitt des Quell-Snippets. |
 | **Konfidenz** | Prozentwert der Übereinstimmung dieses Snippets mit der Frage. |
-| **Badges** | Sprache, Überschrift, Kategorie und ob es sich um eine automatische Übersetzung handelt. |
+| **Badges** | Sprache, Überschrift, Kategorie, Anweisungen (teal), Voraussetzungen (rosa) und ob es sich um eine automatische Übersetzung handelt. |
 | **Text** | Der Textinhalt des Snippets (bei langen Texten ein-/ausklappbar). |
+| **Anweisungen / Verfahren** | Falls vorhanden, ein ausklappbarer Abschnitt mit Handlungsanweisungen oder Verfahrensbeschreibungen. |
+| **Voraussetzungen** | Falls vorhanden, ein ausklappbarer Abschnitt mit den Voraussetzungen für das beschriebene Verfahren. |
 | **View original document** | Öffnet das Originaldokument (PDF/DOCX), falls beim Upload gespeichert. |
 | **Include / Included** | Markiert dieses Snippet als Kontext für die Verfeinerung. |
 | **All languages** | Zeigt verknüpfte Übersetzungen dieses Snippets in anderen Sprachen an. Es öffnet sich ein Dialog mit allen verfügbaren Sprachversionen. |
@@ -215,12 +260,12 @@ In der Sammlungsansicht (**Collection**) stehen Admins die Schaltflächen **Impo
 2. Klicke auf **Export JSON**.
 3. Eine JSON-Datei mit dem Namen `collection-export-JJJJ-MM-TT.json` wird heruntergeladen.
 
-Die exportierte Datei enthält alle Snippets (inkl. automatisch generierter Übersetzungen) als flaches JSON-Array. Laufzeit-Metadaten werden beim Export entfernt.
+Die exportierte Datei enthält alle Snippets im gruppierten Format als JSON-Array. Jedes Objekt umfasst Titel, Gruppe, gemeinsame Metadaten und ein `translations`-Objekt mit allen Sprachversionen. Laufzeit-Metadaten werden beim Export entfernt.
 
 #### Sammlung importieren
 
 1. Klicke auf **Import JSON** und wähle eine `.json`-Datei aus.
-2. Die Datei muss ein JSON-Array mit Snippet-Objekten enthalten (dasselbe Format wie beim Export).
+2. Die Datei muss ein JSON-Array mit gruppierten Snippet-Objekten enthalten (dasselbe Format wie beim Export).
 3. Beim Import werden bestehende Snippets in den Gruppen, die in der Datei enthalten sind, **ersetzt**. Gruppen, die nicht in der Importdatei vorkommen, bleiben unverändert.
 4. Nach erfolgreichem Import wird eine Zusammenfassung angezeigt (Anzahl importierter Snippets, Übersetzungen, betroffene Gruppen).
 
@@ -229,6 +274,13 @@ Die exportierte Datei enthält alle Snippets (inkl. automatisch generierter Übe
 ### Prompt-Verwaltung
 
 Über den Menüpunkt **Prompts** kannst du die LLM-Prompt-Vorlagen anpassen, die das System für die Antwortgenerierung verwendet.
+
+Die Prompts sind in zwei Bereiche unterteilt:
+
+| Bereich | Beschreibung |
+|---------|-------------|
+| **Main Prompts** | Die wichtigsten Prompts, die den Antwortstil und den Abschlussgruss steuern. Hier befindet sich auch der Prompt `default_closing`, der den Standard-Abschlussgruss für alle Benutzer festlegt. |
+| **Advanced prompts** | Erweiterte Prompts für Spezialfunktionen wie HyDE-Generierung, Übersetzung, Beispielfragen-Generierung und weitere interne Verarbeitungsschritte. Dieser Bereich ist standardmässig eingeklappt. |
 
 | Aktion | Beschreibung |
 |--------|-------------|
@@ -283,9 +335,12 @@ Die Einstellung wird im Browser gespeichert und bleibt auch nach dem Schließen 
 ## Tipps für die beste Nutzung
 
 - **Aussagekräftige Titel vergeben** – Gute Titel helfen dir, Snippets in der Sammlung schnell wiederzufinden.
-- **Gruppen sinnvoll nutzen** – Organisiere deine Snippets thematisch in Gruppen, um den Suchbereich gezielt einschränken zu können.
+- **Gruppen sinnvoll nutzen** – Organisiere deine Snippets thematisch in Gruppen, um den Suchbereich gezielt einschränken zu können. Über den Gruppen-Badge kannst du die Zuordnung jederzeit schnell ändern.
 - **Beispielfragen pflegen** – Hinterlege bei wichtigen Snippets typische Fragen. Das verbessert die Trefferqualität bei der Suche erheblich.
+- **Anweisungen und Voraussetzungen nutzen** – Für verfahrenstechnische Snippets kannst du Handlungsanweisungen und Voraussetzungen als separate Metadaten erfassen. Diese werden auf den Quellenkarten übersichtlich als ausklappbare Abschnitte dargestellt.
 - **Antwortnähe anpassen** – Für wörtliche Zitate setze den Regler hoch; für freiere Zusammenfassungen niedrig.
 - **Quellen prüfen** – Kontrolliere bei wichtigen Antworten immer die angezeigten Quellen und deren Konfidenzwerte.
 - **Verfeinerung nutzen** – Wenn die erste Antwort nicht passt, formuliere eine klare Verfeinerungsanweisung, anstatt die Frage komplett neu zu stellen.
+- **Abschlussgruss anpassen** – Passe den Abschlussgruss im Ask-Bereich für deine Sitzung an. Der Standardtext kann vom Administrator über die Prompt-Verwaltung zentral geändert werden.
+- **Antwort kopieren** – Nutze die Kopieren-Schaltfläche, um Antwort und Abschlussgruss in einem Schritt in die Zwischenablage zu übernehmen.
 - **Sprachübergreifend suchen** – Die Anwendung unterstützt mehrsprachige Suche. Stelle Fragen in einer beliebigen Sprache, auch wenn deine Snippets in einer anderen Sprache vorliegen.
