@@ -1,4 +1,4 @@
-import type { AskResponse, PromptItem, RefineResponse, SnippetGroupListResponse, SnippetItem, SnippetListResponse, SnippetMetadata, SourceItem, TokenResponse, TranslationEntry, User } from "./types";
+import type { AskResponse, HelpContentResponse, PromptItem, RefineResponse, SnippetGroupListResponse, SnippetItem, SnippetListResponse, SnippetMetadata, SourceItem, TokenResponse, TranslationEntry, User } from "./types";
 
 const BASE = "";
 /** Base URL for document links (e.g. '' for same-origin, or 'http://localhost:8000' if you need to open the backend directly). */
@@ -449,6 +449,24 @@ export async function resetPrompt(key: string): Promise<PromptItem> {
   const res = await fetch(`${BASE}/api/admin/prompts/${key}/reset`, {
     method: "POST",
     headers: authHeaders(),
+  });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function getHelpContent(): Promise<HelpContentResponse> {
+  const res = await fetch(`${BASE}/api/help-content`, { headers: authHeaders() });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function updateHelpContent(content: string): Promise<HelpContentResponse> {
+  const res = await fetch(`${BASE}/api/admin/help-content`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ content }),
   });
   await checkUnauthorized(res);
   if (!res.ok) throw new Error(await res.text());

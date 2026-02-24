@@ -137,6 +137,16 @@ class PromptUpdate(BaseModel):
     template: str = Field(..., min_length=1)
 
 
+class HelpContentResponse(BaseModel):
+    """Current help/manual HTML content."""
+    content: str
+
+
+class HelpContentUpdate(BaseModel):
+    """Admin updates help/manual HTML content."""
+    content: str = Field(..., min_length=1)
+
+
 # Collection import/export (grouped format)
 class TranslationEntry(BaseModel):
     """A single language variant within a grouped snippet."""

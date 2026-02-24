@@ -88,3 +88,7 @@ export interface PromptItem {
   default_template: string;
   is_default: boolean;
 }
+
+export interface HelpContentResponse {
+  content: string;
+}

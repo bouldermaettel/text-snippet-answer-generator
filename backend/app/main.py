@@ -23,6 +23,8 @@ from .models import (
     AskRequest,
     AskResponse,
     CollectionGroupedItem,
+    HelpContentResponse,
+    HelpContentUpdate,
     PromptItem,
     PromptUpdate,
     RefineRequest,
@@ -44,6 +46,7 @@ from .models import (
     UserResponse,
     UserUpdate,
 )
+from .help_content_store import get_help_content, set_help_content
 from .retrieval import answer_confidence, retrieve_and_score
 from .store import add_snippets, delete_snippet, delete_snippets_by_group, get_linked_snippets, get_snippet_metadata, list_groups, list_snippets, list_snippets_grouped, update_example_questions, update_snippet, update_snippet_grouped
 from .anonymize import anonymize_text
@@ -345,6 +348,24 @@ def get_default_closing(
     """Return the configurable default closing greeting for answers."""
     from .prompt_store import get_prompt
     return {"closing": get_prompt("default_closing")}
+
+
+@app.get("/api/help-content", response_model=HelpContentResponse)
+def get_help_manual(
+    current_user: Annotated[dict, Depends(get_current_user)] = None,
+):
+    """Return top-level help/manual HTML content for all authenticated users."""
+    return HelpContentResponse(content=get_help_content())
+
+
+@app.put("/api/admin/help-content", response_model=HelpContentResponse)
+def update_help_manual(
+    payload: HelpContentUpdate,
+    current_user: Annotated[dict, Depends(get_current_admin)] = None,
+):
+    """Update top-level help/manual HTML content (admin only)."""
+    set_help_content(payload.content)
+    return HelpContentResponse(content=payload.content)
 
 
 @app.post("/api/snippets")

@@ -24,6 +24,7 @@ import { Sidebar } from "./components/Sidebar";
 import type { Theme } from "./components/ThemeToggle";
 import { PromptsView } from "./components/PromptsView";
 import { UsersView } from "./components/UsersView";
+import { HelpView } from "./components/HelpView";
 
 const THEME_KEY = "theme";
 
@@ -46,7 +47,7 @@ function applyTheme(theme: Theme) {
   else root.classList.remove("dark");
 }
 
-type Tab = "ask" | "collection" | "users" | "prompts";
+type Tab = "ask" | "collection" | "help" | "users" | "prompts";
 
 export default function App() {
   const [token, setTokenState] = useState<string | null>(() => getToken());
@@ -480,6 +481,10 @@ export default function App() {
               groups={groups}
               user={user}
             />
+          )}
+
+          {tab === "help" && (
+            <HelpView user={user} />
           )}
 
           {tab === "users" && user?.role === "admin" && (

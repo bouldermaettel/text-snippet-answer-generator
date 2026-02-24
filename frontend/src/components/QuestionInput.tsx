@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 type Props = {
   value: string;
   onChange: (v: string) => void;
@@ -7,6 +9,19 @@ type Props = {
 };
 
 export function QuestionInput({ value, onChange, onSubmit, loading, disabled }: Props) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const resizeTextarea = (element: HTMLTextAreaElement): void => {
+    element.style.height = "auto";
+    element.style.height = `${element.scrollHeight}px`;
+  };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      resizeTextarea(textareaRef.current);
+    }
+  }, [value]);
+
   return (
     <form
       className="flex flex-col gap-2 sm:flex-row"
@@ -16,8 +31,12 @@ export function QuestionInput({ value, onChange, onSubmit, loading, disabled }: 
       }}
     >
       <textarea
+        ref={textareaRef}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          resizeTextarea(e.currentTarget);
+          onChange(e.currentTarget.value);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -26,7 +45,7 @@ export function QuestionInput({ value, onChange, onSubmit, loading, disabled }: 
         }}
         placeholder="Ask a question…"
         rows={1}
-        className="min-w-0 flex-1 resize-none rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
+        className="min-w-0 flex-1 resize-none overflow-hidden rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20"
         disabled={disabled || loading}
         aria-label="Question"
       />

@@ -234,6 +234,7 @@
     <ul>
       <li><a href="#benutzerverwaltung">Benutzerverwaltung</a></li>
       <li><a href="#import-export">Sammlung importieren und exportieren</a></li>
+      <li><a href="#structured-json-api">Strukturiertes JSON hochladen (API)</a></li>
       <li><a href="#prompt-verwaltung">Prompt-Verwaltung</a></li>
       <li><a href="#backup">Backup und Wiederherstellung</a></li>
     </ul>
@@ -339,6 +340,7 @@
   <li>Optional kannst du <strong>PII anonymisieren</strong> aktivieren.</li>
   <li>Jede hochgeladene Datei wird als ein eigenes Snippet angelegt. Bei PDF- und Word-Dateien wird der Originaltext extrahiert und das Originaldokument gespeichert, sodass es später über «View original document» abgerufen werden kann.</li>
 </ol>
+<blockquote><p><strong>Hinweis:</strong> Der Upload-Dialog unterstützt Dokumente (<code>.txt</code>, <code>.docx</code>, <code>.pdf</code>). Für strukturierte JSON-Daten nutze als Admin die Funktion <strong>Import JSON</strong> (siehe <a href="#import-export">Sammlung importieren und exportieren</a>) oder den API-Endpunkt <code>/api/snippets/grouped</code> (siehe <a href="#structured-json-api">Strukturiertes JSON hochladen (API)</a>).</p></blockquote>
 
 <h3 id="bearbeiten">Snippet bearbeiten (Mehrsprachiger Editor)</h3>
 <ol>
@@ -520,11 +522,43 @@
 <h4>Sammlung importieren</h4>
 <ol>
   <li>Klicke auf <strong>Import JSON</strong> und wähle eine <code>.json</code>-Datei aus.</li>
-  <li>Die Datei muss ein JSON-Array mit gruppierten Snippet-Objekten enthalten (dasselbe Format wie beim Export).</li>
+  <li>Die Datei muss ein <strong>strukturiertes JSON-Array</strong> mit gruppierten Snippet-Objekten enthalten (dasselbe Format wie beim Export).</li>
   <li>Beim Import werden bestehende Snippets in den Gruppen, die in der Datei enthalten sind, <strong>ersetzt</strong>. Gruppen, die nicht in der Importdatei vorkommen, bleiben unverändert.</li>
   <li>Nach erfolgreichem Import wird eine Zusammenfassung angezeigt (Anzahl importierter Snippets, Übersetzungen, betroffene Gruppen).</li>
 </ol>
+<p>Ein Eintrag im strukturierten JSON hat dieses Schema:</p>
+<pre><code>[
+  {
+    "title": "Beispieltitel",
+    "group": "Beispielgruppe",
+    "metadata": {
+      "heading": "Abschnitt",
+      "category": "Kategorie",
+      "instructions": "Vorgehen",
+      "prerequisites": "Voraussetzungen"
+    },
+    "translations": {
+      "de": {
+        "text": "Inhalt auf Deutsch",
+        "example_questions": ["Frage 1", "Frage 2"]
+      },
+      "en": {
+        "text": "Content in English",
+        "example_questions": ["Question 1"],
+        "is_generated_translation": true
+      }
+    }
+  }
+]</code></pre>
 <blockquote><p><strong>Tipp:</strong> Nutze die Export-Funktion, um ein Backup deiner Sammlung zu erstellen, bevor du einen Import durchführst.</p></blockquote>
+
+<h4 id="structured-json-api">Strukturiertes JSON hochladen (API)</h4>
+<p>Zusätzlich zum Admin-Import gibt es den Endpunkt <code>/api/snippets/grouped</code>. Damit kannst du <strong>ein einzelnes gruppiertes Snippet</strong> im gleichen strukturierten JSON-Format anlegen (Titel, Gruppe, gemeinsame Metadaten und <code>translations</code>).</p>
+<ul>
+  <li>Die Anfrage ist ein JSON-Objekt (kein Array) im gruppierten Format.</li>
+  <li>Mindestens eine nicht-generierte Übersetzung ist erforderlich.</li>
+  <li>Im Unterschied zu <strong>Import JSON</strong> werden bestehende Snippets dabei nicht gruppenweise ersetzt.</li>
+</ul>
 
 <h3 id="prompt-verwaltung">Prompt-Verwaltung</h3>
 <p>Über den Menüpunkt <strong>Prompts</strong> kannst du die LLM-Prompt-Vorlagen anpassen, die das System für die Antwortgenerierung verwendet.</p>

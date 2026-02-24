@@ -3,7 +3,7 @@ import type { User } from "../types";
 import type { Theme } from "./ThemeToggle";
 import { ThemeToggle } from "./ThemeToggle";
 
-type Tab = "ask" | "collection" | "users" | "prompts";
+type Tab = "ask" | "collection" | "help" | "users" | "prompts";
 
 type Props = {
   tab: Tab;
@@ -107,6 +107,20 @@ export function Sidebar({
             Prompts
           </button>
         )}
+        <button
+          type="button"
+          onClick={() => onTabChange("help")}
+          className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+            tab === "help"
+              ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200"
+              : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/50"
+          }`}
+        >
+          <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          User instructions
+        </button>
       </nav>
       {tab === "collection" && !backendUnavailable && (
         <div className="border-t border-slate-200 p-3 dark:border-slate-700">
