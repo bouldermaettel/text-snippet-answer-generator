@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benutzerhandbuch – Snippet Answer</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --heading: #0f172a;
+    --link: #2563eb;
+    --link-hover: #1d4ed8;
+    --border: #e2e8f0;
+    --code-bg: #f1f5f9;
+    --code-text: #0f172a;
+    --blockquote-bg: #f8fafc;
+    --blockquote-border: #3b82f6;
+    --table-header: #f1f5f9;
+    --table-stripe: #f8fafc;
+    --badge-teal: #0d9488;
+    --badge-rose: #e11d48;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #cbd5e1;
+      --text-muted: #94a3b8;
+      --heading: #f1f5f9;
+      --link: #60a5fa;
+      --link-hover: #93bbfd;
+      --border: #334155;
+      --code-bg: #1e293b;
+      --code-text: #e2e8f0;
+      --blockquote-bg: #1e293b;
+      --blockquote-border: #3b82f6;
+      --table-header: #1e293b;
+      --table-stripe: #162032;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg);
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    color: var(--heading);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    color: var(--heading);
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    color: var(--heading);
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  h4 {
+    font-size: 1.05rem;
+    color: var(--heading);
+    margin-top: 1.25rem;
+    margin-bottom: 0.4rem;
+  }
+
+  p { margin-bottom: 0.75rem; }
+
+  a {
+    color: var(--link);
+    text-decoration: none;
+  }
+  a:hover { color: var(--link-hover); text-decoration: underline; }
+
+  strong { color: var(--heading); }
+
+  em { font-style: italic; }
+
+  code {
+    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    border: 1px solid var(--border);
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  blockquote {
+    background: var(--blockquote-bg);
+    border-left: 4px solid var(--blockquote-border);
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0 1rem;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  blockquote p { margin-bottom: 0; }
+  blockquote strong { color: var(--heading); }
+
+  ul, ol {
+    margin: 0.5rem 0 1rem 1.5rem;
+  }
+  li { margin-bottom: 0.35rem; }
+  li ul, li ol { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0 1.25rem;
+    font-size: 0.925rem;
+    box-shadow: var(--shadow);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th {
+    background: var(--table-header);
+    color: var(--heading);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 0.55rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+  tr:last-child td { border-bottom: none; }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2rem 0;
+  }
+
+  nav#toc {
+    background: var(--blockquote-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  nav#toc > ol { margin-bottom: 0; }
+  nav#toc li { margin-bottom: 0.2rem; }
+
+  @media (max-width: 640px) {
+    body { padding: 1rem; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+    table { font-size: 0.85rem; }
+    th, td { padding: 0.4rem 0.6rem; }
+  }
+
+  @media print {
+    body { max-width: 100%; padding: 0; color: #000; }
+    a { color: #000; text-decoration: underline; }
+    nav#toc { break-after: page; }
+    h2 { break-before: auto; break-after: avoid; }
+    table { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Benutzerhandbuch – Snippet Answer</h1>
+
+<nav id="toc">
+<h2 style="margin-top:0; border:none; padding:0; font-size:1.15rem;">Inhaltsverzeichnis</h2>
+<ol>
+  <li><a href="#ueberblick">Überblick</a></li>
+  <li><a href="#anmeldung">Anmeldung und Registrierung</a></li>
+  <li><a href="#sammlung">Die Sammlung (Collection)</a>
+    <ul>
+      <li><a href="#gruppierte-ansicht">Gruppierte Snippet-Ansicht</a></li>
+      <li><a href="#filtern">Snippets filtern</a></li>
+      <li><a href="#manuell-hinzufuegen">Snippet manuell hinzufügen</a></li>
+      <li><a href="#dateien-hochladen">Dateien hochladen</a></li>
+      <li><a href="#bearbeiten">Snippet bearbeiten (Mehrsprachiger Editor)</a></li>
+      <li><a href="#gruppe-aendern">Gruppe direkt ändern</a></li>
+      <li><a href="#loeschen">Snippet löschen</a></li>
+    </ul>
+  </li>
+  <li><a href="#fragen">Fragen stellen (Ask)</a>
+    <ul>
+      <li><a href="#suchbereich">Suchbereich festlegen</a></li>
+      <li><a href="#erweiterte-optionen">Erweiterte Optionen</a></li>
+      <li><a href="#antwort-quellen">Antwort und Quellen</a></li>
+      <li><a href="#abschlussgruss">Abschlussgruss</a></li>
+      <li><a href="#antwort-kopieren">Antwort kopieren</a></li>
+    </ul>
+  </li>
+  <li><a href="#verfeinern">Antwort verfeinern (Refine)</a></li>
+  <li><a href="#quellenkarten">Quellenkarten und verknüpfte Sprachen</a></li>
+  <li><a href="#administration">Administration (nur Admins)</a>
+    <ul>
+      <li><a href="#benutzerverwaltung">Benutzerverwaltung</a></li>
+      <li><a href="#import-export">Sammlung importieren und exportieren</a></li>
+      <li><a href="#prompt-verwaltung">Prompt-Verwaltung</a></li>
+      <li><a href="#backup">Backup und Wiederherstellung</a></li>
+    </ul>
+  </li>
+  <li><a href="#theme">Design-Modus (Theme)</a></li>
+</ol>
+</nav>
+
+<hr>
+
+<!-- ===== Überblick ===== -->
+<h2 id="ueberblick">Überblick</h2>
+
+<p><strong>Snippet Answer</strong> ist ein KI-gestütztes Frage-Antwort-System. Es basiert auf dem Prinzip der sogenannten <em>Retrieval-Augmented Generation</em> (RAG): Du pflegst eine Sammlung von Textbausteinen (Snippets), stellst Fragen in natürlicher Sprache und erhältst passende Antworten, die direkt aus deinen Snippets generiert werden – inklusive Quellenangaben und Konfidenzwerten.</p>
+
+<p><strong>Typischer Ablauf:</strong></p>
+<ol>
+  <li>Snippets anlegen oder als Dateien hochladen</li>
+  <li>Eine Frage eingeben</li>
+  <li>Eine generierte Antwort mit Quellenangaben erhalten</li>
+  <li>Die Antwort bei Bedarf verfeinern</li>
+</ol>
+
+<hr>
+
+<!-- ===== Anmeldung ===== -->
+<h2 id="anmeldung">Anmeldung und Registrierung</h2>
+
+<h3>Registrierung</h3>
+<p>Beim ersten Besuch der Anwendung erscheint die Anmeldeseite. Falls du noch kein Konto hast, wechsle auf <strong>Registrieren</strong> und gib deine E-Mail-Adresse sowie ein Passwort ein.</p>
+<blockquote><p><strong>Hinweis:</strong> Nach der Registrierung hat dein Konto den Status <em>ausstehend</em>. Ein Administrator muss dein Konto erst freischalten, bevor du dich anmelden kannst.</p></blockquote>
+
+<h3>Anmeldung</h3>
+<p>Gib deine E-Mail-Adresse und dein Passwort ein und klicke auf <strong>Anmelden</strong>. Nach erfolgreicher Anmeldung gelangst du zur Hauptansicht der Anwendung.</p>
+
+<hr>
+
+<!-- ===== Sammlung ===== -->
+<h2 id="sammlung">Die Sammlung (Collection)</h2>
+
+<p>Die Sammlung ist der zentrale Ort, an dem alle deine Textbausteine (Snippets) verwaltet werden. Du erreichst die Sammlung über den Menüpunkt <strong>Collection</strong> in der Seitenleiste.</p>
+
+<h3 id="gruppierte-ansicht">Gruppierte Snippet-Ansicht</h3>
+<p>Snippets werden in der Sammlung als <strong>gruppierte Karten</strong> angezeigt. Jede Karte fasst alle Sprachversionen eines Snippets zusammen:</p>
+<ul>
+  <li><strong>Sprach-Badges</strong> zeigen die verfügbaren Sprachen an (z.&nbsp;B. DE, EN, FR, IT). Ein Klick auf einen Sprach-Badge zeigt die Vorschau in dieser Sprache.</li>
+  <li>Automatisch generierte Übersetzungen sind mit einem <strong>Stern (*)</strong> gekennzeichnet und farblich hervorgehoben.</li>
+  <li><strong>Metadaten-Badges</strong> zeigen vorhandene Zusatzinformationen an: Überschrift, Kategorie, Anweisungen (teal «Instr.») und Voraussetzungen (rosa «Prereq.»).</li>
+</ul>
+
+<h3 id="filtern">Snippets filtern</h3>
+<p>Um gezielt nach Snippets zu suchen, stehen dir mehrere Filtermöglichkeiten zur Verfügung:</p>
+<table>
+  <thead><tr><th>Filter</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Gruppe</strong></td><td>Wähle in der Seitenleiste eine bestimmte Gruppe aus, um nur deren Snippets anzuzeigen.</td></tr>
+    <tr><td><strong>Sprache</strong></td><td>Filtere nach Sprache (Deutsch, Englisch, Französisch, Italienisch).</td></tr>
+    <tr><td><strong>Textsuche</strong></td><td>Gib einen Suchbegriff ein, um Snippets nach Titel oder Inhalt zu durchsuchen.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="manuell-hinzufuegen">Snippet manuell hinzufügen</h3>
+<ol>
+  <li>Klicke in der Sammlungsansicht auf <strong>Add snippet</strong>.</li>
+  <li>Fülle die gemeinsamen Felder aus:
+    <ul>
+      <li><strong>Titel</strong> – Ein aussagekräftiger Name für das Snippet.</li>
+      <li><strong>Gruppe</strong> – Wähle eine bestehende Gruppe aus oder erstelle eine neue, indem du einen neuen Namen eintippst.</li>
+    </ul>
+  </li>
+  <li>Wechsle zwischen den <strong>Sprach-Tabs</strong> (DE, EN, FR, IT) und gib den Text in den gewünschten Sprachen ein:
+    <ul>
+      <li><strong>Text</strong> – Der Textinhalt in der jeweiligen Sprache.</li>
+      <li><strong>Beispielfragen</strong> – Optionale typische Fragen (eine pro Zeile), die die Suchqualität verbessern.</li>
+      <li>Es muss mindestens eine Sprache ausgefüllt werden. Sprachen ohne Text werden automatisch übersprungen.</li>
+      <li>Ausgefüllte Sprach-Tabs werden mit einem Häkchen markiert.</li>
+    </ul>
+  </li>
+  <li>Optional kannst du unter <strong>Shared metadata</strong> zusätzliche Metadaten angeben:
+    <ul>
+      <li><strong>Überschrift</strong> – Eine Überschrift oder Abschnittsbezeichnung.</li>
+      <li><strong>Kategorie</strong> – Eine inhaltliche Kategorie.</li>
+      <li><strong>Anweisungen / Verfahren</strong> – Handlungsanweisungen oder Verfahrensbeschreibungen.</li>
+      <li><strong>Voraussetzungen</strong> – Voraussetzungen für das beschriebene Verfahren.</li>
+    </ul>
+  </li>
+  <li>Klicke auf <strong>Add snippet</strong>, um das Snippet zur Sammlung hinzuzufügen.</li>
+</ol>
+<blockquote><p><strong>Tipp:</strong> Du kannst auch nur eine Sprache ausfüllen. Die fehlenden Sprachen werden dann automatisch vom System übersetzt, sofern die automatische Übersetzung aktiviert ist.</p></blockquote>
+
+<h3 id="dateien-hochladen">Dateien hochladen</h3>
+<p>Anstatt Snippets manuell einzugeben, kannst du auch Dateien importieren:</p>
+<ol>
+  <li>Klicke auf <strong>Add snippet</strong> und wechsle zum Tab <strong>Upload</strong>.</li>
+  <li>Wähle eine oder mehrere Dateien aus. Unterstützte Formate:
+    <ul>
+      <li><code>.txt</code> (Textdateien)</li>
+      <li><code>.docx</code> (Word-Dokumente)</li>
+      <li><code>.pdf</code> (PDF-Dokumente)</li>
+    </ul>
+  </li>
+  <li>Optional kannst du einen <strong>Ordner</strong> auswählen – der Ordnername wird dann als Gruppenname verwendet.</li>
+  <li>Optional kannst du <strong>PII anonymisieren</strong> aktivieren.</li>
+  <li>Jede hochgeladene Datei wird als ein eigenes Snippet angelegt. Bei PDF- und Word-Dateien wird der Originaltext extrahiert und das Originaldokument gespeichert, sodass es später über «View original document» abgerufen werden kann.</li>
+</ol>
+
+<h3 id="bearbeiten">Snippet bearbeiten (Mehrsprachiger Editor)</h3>
+<ol>
+  <li>Klicke auf einer Snippet-Karte auf <strong>Edit</strong>.</li>
+  <li>Es öffnet sich der <strong>gruppierte Editor</strong> mit Sprach-Tabs:
+    <ul>
+      <li>Oben siehst du einen Tab pro verfügbarer Sprache (z.&nbsp;B. DE, EN, FR, IT). Automatisch übersetzte Sprachen sind mit einem <strong>Stern (*)</strong> markiert.</li>
+      <li>Wähle einen Tab, um den Text und die Beispielfragen für diese Sprachversion zu bearbeiten.</li>
+    </ul>
+  </li>
+  <li>Im oberen Bereich des Dialogs befinden sich die <strong>gemeinsamen Felder</strong>, die für alle Sprachversionen gelten:
+    <ul>
+      <li><strong>Titel</strong> – Name des Snippets.</li>
+      <li><strong>Gruppe</strong> – Zugehörige Gruppe (auswählbar oder neu erstellbar).</li>
+      <li><strong>Überschrift</strong> – Optionale Abschnittsbezeichnung.</li>
+      <li><strong>Kategorie</strong> – Optionale inhaltliche Kategorie.</li>
+      <li><strong>Anweisungen / Verfahren</strong> – Optionale Handlungsanweisungen oder Verfahrensbeschreibungen, die im Quellenkarten-Bereich als ausklappbarer Abschnitt angezeigt werden.</li>
+      <li><strong>Voraussetzungen</strong> – Optionale Voraussetzungen, die ebenfalls als ausklappbarer Abschnitt auf der Quellenkarte erscheinen.</li>
+    </ul>
+  </li>
+  <li>Pro Sprach-Tab kannst du bearbeiten:
+    <ul>
+      <li><strong>Text</strong> – Der Textinhalt in dieser Sprache.</li>
+      <li><strong>Beispielfragen</strong> – Typische Fragen zu diesem Snippet (eine pro Zeile). Diese verbessern die Suchqualität bei der Fragebeantwortung erheblich.</li>
+    </ul>
+  </li>
+  <li>Klicke auf <strong>Save</strong>, um die Änderungen zu speichern.</li>
+</ol>
+
+<h3 id="gruppe-aendern">Gruppe direkt ändern</h3>
+<p>Du kannst die Gruppenzugehörigkeit eines Snippets direkt in der Sammlungsansicht ändern, ohne den vollständigen Bearbeitungsdialog zu öffnen:</p>
+<ol>
+  <li>Klicke auf den <strong>Gruppen-Badge</strong> (den farbigen Tag mit dem Gruppennamen) auf einer Snippet-Karte.</li>
+  <li>Es öffnet sich ein Dropdown, in dem du eine bestehende Gruppe auswählen oder einen neuen Gruppennamen eingeben kannst.</li>
+  <li>Die Änderung wird sofort gespeichert.</li>
+</ol>
+
+<h3 id="loeschen">Snippet löschen</h3>
+<ol>
+  <li>Klicke auf einer Snippet-Karte auf <strong>Delete</strong>.</li>
+  <li>Bestätige die Löschung im angezeigten Dialog.</li>
+</ol>
+<blockquote><p><strong>Achtung:</strong> Gelöschte Snippets können nicht wiederhergestellt werden. Auch eventuell gespeicherte Originaldokumente werden mit entfernt.</p></blockquote>
+
+<hr>
+
+<!-- ===== Fragen stellen ===== -->
+<h2 id="fragen">Fragen stellen (Ask)</h2>
+
+<p>Die Kernfunktion der Anwendung. Wechsle über die Seitenleiste zum Bereich <strong>Ask</strong>.</p>
+<ol>
+  <li>Gib deine Frage in das Textfeld ein.</li>
+  <li>Klicke auf <strong>Ask</strong> oder drücke die <strong>Eingabetaste</strong>.</li>
+</ol>
+<p>Die Anwendung durchsucht deine Snippet-Sammlung, findet die relevantesten Textbausteine und generiert eine Antwort.</p>
+<blockquote><p><strong>Tipp:</strong> Mit <strong>Shift+Enter</strong> kannst du im Fragefeld einen Zeilenumbruch einfügen, ohne die Frage abzusenden.</p></blockquote>
+
+<h3 id="suchbereich">Suchbereich festlegen</h3>
+<p>Oberhalb des Eingabefeldes kannst du den Suchbereich einschränken:</p>
+<table>
+  <thead><tr><th>Option</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>All snippets</strong></td><td>Es wird in der gesamten Sammlung gesucht.</td></tr>
+    <tr><td><strong>Selected groups</strong></td><td>Wähle eine oder mehrere Gruppen aus, in denen gesucht werden soll. Eine Suchfunktion hilft beim Finden der gewünschten Gruppen.</td></tr>
+    <tr><td><strong>Selected snippets</strong></td><td>Wähle gezielt einzelne Snippets aus, auf die sich die Suche beschränken soll.</td></tr>
+  </tbody>
+</table>
+
+<h3 id="erweiterte-optionen">Erweiterte Optionen</h3>
+<table>
+  <thead><tr><th>Option</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Answer closeness</strong> (Antwortnähe)</td><td>Ein Schieberegler von 0&nbsp;% bis 100&nbsp;%. Je höher der Wert, desto näher bleibt die generierte Antwort am Originaltext der Snippets. Bei niedrigen Werten formuliert das System freier.</td></tr>
+    <tr><td><strong>HyDE</strong></td><td>Hypothetical Document Embeddings – eine fortgeschrittene Suchtechnik, bei der zuerst eine hypothetische Antwort generiert und dann nach ähnlichen Snippets gesucht wird. Dies kann die Suchergebnisse bei komplexen Fragen verbessern.</td></tr>
+    <tr><td><strong>Keyword reranking</strong></td><td>Ergänzt die semantische Suche um eine schlüsselwortbasierte Neugewichtung der Ergebnisse. Nützlich, wenn bestimmte Fachbegriffe exakt übereinstimmen sollen.</td></tr>
+    <tr><td><strong>Search in</strong> (Sprache)</td><td>Einschränkung der Suche auf eine bestimmte Sprache (Alle, Deutsch, Englisch, Französisch, Italienisch).</td></tr>
+  </tbody>
+</table>
+
+<h3 id="antwort-quellen">Antwort und Quellen</h3>
+<p>Nach dem Absenden der Frage erhältst du:</p>
+<ul>
+  <li><strong>Antwort</strong> – Der generierte Antworttext. URLs in der Antwort werden automatisch als klickbare Links dargestellt.</li>
+  <li><strong>Antwort-Konfidenz</strong> – Ein Prozentwert, der angibt, wie sicher das System bezüglich der Antwort ist:
+    <ul>
+      <li><strong>Grün (hoch):</strong> Hohe Übereinstimmung mit den Quellen.</li>
+      <li><strong>Gelb (mittel):</strong> Mässige Übereinstimmung.</li>
+      <li><strong>Rot (niedrig):</strong> Geringe Übereinstimmung – die Antwort sollte kritisch geprüft werden.</li>
+    </ul>
+  </li>
+  <li><strong>Quellenkarten</strong> – Unterhalb der Antwort werden die verwendeten Quell-Snippets aufgelistet (siehe <a href="#quellenkarten">Quellenkarten und verknüpfte Sprachen</a>).</li>
+</ul>
+
+<h3 id="abschlussgruss">Abschlussgruss</h3>
+<p>Unterhalb der Antwort wird automatisch ein <strong>Abschlussgruss</strong> angezeigt. Dieser wird vom Server vorgegeben und kann pro Sitzung im dafür vorgesehenen Textfeld angepasst werden.</p>
+<ul>
+  <li>Der Standard-Abschlussgruss wird vom Administrator über die <strong>Prompt-Verwaltung</strong> festgelegt (Prompt: <code>default_closing</code>).</li>
+  <li>Änderungen am Abschlussgruss im Textfeld gelten nur für die aktuelle Sitzung und werden nicht dauerhaft gespeichert.</li>
+</ul>
+
+<h3 id="antwort-kopieren">Antwort kopieren</h3>
+<p>Klicke auf die Schaltfläche <strong>Kopieren</strong> oberhalb der Antwort, um den gesamten Antworttext inklusive Abschlussgruss in die Zwischenablage zu kopieren. Nach erfolgreichem Kopieren wechselt die Beschriftung kurzzeitig zu «Kopiert».</p>
+
+<hr>
+
+<!-- ===== Verfeinern ===== -->
+<h2 id="verfeinern">Antwort verfeinern (Refine)</h2>
+
+<p>Wenn die generierte Antwort nicht deinen Vorstellungen entspricht, kannst du sie verfeinern:</p>
+<ol>
+  <li>Unterhalb der Antwort findest du das <strong>Verfeinerungsfeld</strong>.</li>
+  <li>Gib eine Anweisung ein, wie die Antwort angepasst werden soll, z.&nbsp;B.:
+    <ul>
+      <li>«Mach die Antwort kürzer»</li>
+      <li>«Formuliere freundlicher»</li>
+      <li>«Fokussiere dich auf den rechtlichen Aspekt»</li>
+      <li>«Antworte auf Deutsch»</li>
+    </ul>
+  </li>
+  <li><strong>Quellen auswählen (optional):</strong> Klicke bei den Quellenkarten auf <strong>Include</strong>, um nur bestimmte Quellen für die Verfeinerung zu berücksichtigen. Wenn keine Quellen ausgewählt sind, werden alle Quellen verwendet.</li>
+  <li>Klicke auf <strong>Refine</strong>.</li>
+</ol>
+<p>Die verfeinerte Antwort ersetzt die bisherige Antwort. Die Quellenkarten bleiben erhalten, sodass du den Vorgang beliebig oft wiederholen kannst.</p>
+<blockquote><p><strong>Tipp:</strong> Mit <strong>Shift+Enter</strong> kannst du auch im Verfeinerungsfeld einen Zeilenumbruch einfügen, ohne die Verfeinerung abzusenden.</p></blockquote>
+
+<hr>
+
+<!-- ===== Quellenkarten ===== -->
+<h2 id="quellenkarten">Quellenkarten und verknüpfte Sprachen</h2>
+
+<p>Jede Quellenkarte zeigt folgende Informationen:</p>
+<table>
+  <thead><tr><th>Element</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Titel / Abschnittsbezeichnung</strong></td><td>Name und ggf. Abschnitt des Quell-Snippets.</td></tr>
+    <tr><td><strong>Konfidenz</strong></td><td>Prozentwert der Übereinstimmung dieses Snippets mit der Frage.</td></tr>
+    <tr><td><strong>Badges</strong></td><td>Sprache, Überschrift, Kategorie, Anweisungen (teal), Voraussetzungen (rosa) und ob es sich um eine automatische Übersetzung handelt.</td></tr>
+    <tr><td><strong>Text</strong></td><td>Der Textinhalt des Snippets (bei langen Texten ein-/ausklappbar).</td></tr>
+    <tr><td><strong>Anweisungen / Verfahren</strong></td><td>Falls vorhanden, ein ausklappbarer Abschnitt mit Handlungsanweisungen oder Verfahrensbeschreibungen.</td></tr>
+    <tr><td><strong>Voraussetzungen</strong></td><td>Falls vorhanden, ein ausklappbarer Abschnitt mit den Voraussetzungen für das beschriebene Verfahren.</td></tr>
+    <tr><td><strong>View original document</strong></td><td>Öffnet das Originaldokument (PDF/DOCX), falls beim Upload gespeichert.</td></tr>
+    <tr><td><strong>Include / Included</strong></td><td>Markiert dieses Snippet als Kontext für die Verfeinerung.</td></tr>
+    <tr><td><strong>All languages</strong></td><td>Zeigt verknüpfte Übersetzungen dieses Snippets in anderen Sprachen an. Es öffnet sich ein Dialog mit allen verfügbaren Sprachversionen.</td></tr>
+    <tr><td><strong>Edit</strong></td><td>Öffnet den Bearbeitungsdialog für dieses Snippet (identisch zur Bearbeitung in der Sammlung).</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ===== Administration ===== -->
+<h2 id="administration">Administration (nur Admins)</h2>
+
+<p>Als Administrator stehen dir in der Seitenleiste die zusätzlichen Menüpunkte <strong>Users</strong> und <strong>Prompts</strong> zur Verfügung. Ausserdem hast du in der Sammlungsansicht Zugriff auf Import- und Export-Funktionen.</p>
+
+<h3 id="benutzerverwaltung">Benutzerverwaltung</h3>
+<p>Über den Menüpunkt <strong>Users</strong> verwaltest du alle Benutzerkonten. In der Benutzerliste werden für jeden Benutzer E-Mail, Rolle, Status und Erstellungsdatum angezeigt.</p>
+<table>
+  <thead><tr><th>Aktion</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Benutzer genehmigen</strong></td><td>Neu registrierte Benutzer haben den Status <em>ausstehend</em>. Klicke auf <strong>Approve</strong>, um den Zugang freizuschalten.</td></tr>
+    <tr><td><strong>Benutzer hinzufügen</strong></td><td>Klicke auf <strong>Add user</strong> und gib E-Mail, Passwort (mind. 8 Zeichen) und Rolle (Benutzer oder Admin) ein. Der neue Benutzer ist sofort aktiv und muss nicht separat genehmigt werden.</td></tr>
+    <tr><td><strong>Rolle ändern</strong></td><td>Über das Rollen-Dropdown in der Benutzerliste kannst du einen Benutzer zum Admin befördern oder einem Admin die Admin-Rechte entziehen. Der letzte verbleibende Admin kann nicht herabgestuft werden.</td></tr>
+    <tr><td><strong>Benutzer löschen</strong></td><td>Klicke auf <strong>Delete</strong>, um einen Benutzer zu entfernen. Der letzte verbleibende Admin kann nicht gelöscht werden.</td></tr>
+  </tbody>
+</table>
+<blockquote><p><strong>Hinweis:</strong> Der erste Admin-Benutzer wird beim Start der Anwendung automatisch aus den Umgebungsvariablen <code>ADMIN_EMAIL</code> und <code>ADMIN_PASSWORD</code> erstellt, sofern noch kein Admin existiert.</p></blockquote>
+
+<h3 id="import-export">Sammlung importieren und exportieren</h3>
+<p>In der Sammlungsansicht (<strong>Collection</strong>) stehen Admins die Schaltflächen <strong>Import JSON</strong> und <strong>Export JSON</strong> zur Verfügung.</p>
+
+<h4>Sammlung exportieren</h4>
+<ol>
+  <li>Setze optional die gewünschten Filter (Gruppe, Sprache), um nur einen Teil der Sammlung zu exportieren.</li>
+  <li>Klicke auf <strong>Export JSON</strong>.</li>
+  <li>Eine JSON-Datei mit dem Namen <code>collection-export-JJJJ-MM-TT.json</code> wird heruntergeladen.</li>
+</ol>
+<p>Die exportierte Datei enthält alle Snippets im gruppierten Format als JSON-Array. Jedes Objekt umfasst Titel, Gruppe, gemeinsame Metadaten und ein <code>translations</code>-Objekt mit allen Sprachversionen. Laufzeit-Metadaten werden beim Export entfernt.</p>
+
+<h4>Sammlung importieren</h4>
+<ol>
+  <li>Klicke auf <strong>Import JSON</strong> und wähle eine <code>.json</code>-Datei aus.</li>
+  <li>Die Datei muss ein JSON-Array mit gruppierten Snippet-Objekten enthalten (dasselbe Format wie beim Export).</li>
+  <li>Beim Import werden bestehende Snippets in den Gruppen, die in der Datei enthalten sind, <strong>ersetzt</strong>. Gruppen, die nicht in der Importdatei vorkommen, bleiben unverändert.</li>
+  <li>Nach erfolgreichem Import wird eine Zusammenfassung angezeigt (Anzahl importierter Snippets, Übersetzungen, betroffene Gruppen).</li>
+</ol>
+<blockquote><p><strong>Tipp:</strong> Nutze die Export-Funktion, um ein Backup deiner Sammlung zu erstellen, bevor du einen Import durchführst.</p></blockquote>
+
+<h3 id="prompt-verwaltung">Prompt-Verwaltung</h3>
+<p>Über den Menüpunkt <strong>Prompts</strong> kannst du die LLM-Prompt-Vorlagen anpassen, die das System für die Antwortgenerierung verwendet.</p>
+<p>Die Prompts sind in zwei Bereiche unterteilt:</p>
+<table>
+  <thead><tr><th>Bereich</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Main Prompts</strong></td><td>Die wichtigsten Prompts, die den Antwortstil und den Abschlussgruss steuern. Hier befindet sich auch der Prompt <code>default_closing</code>, der den Standard-Abschlussgruss für alle Benutzer festlegt.</td></tr>
+    <tr><td><strong>Advanced prompts</strong></td><td>Erweiterte Prompts für Spezialfunktionen wie HyDE-Generierung, Übersetzung, Beispielfragen-Generierung und weitere interne Verarbeitungsschritte. Dieser Bereich ist standardmässig eingeklappt.</td></tr>
+  </tbody>
+</table>
+<table>
+  <thead><tr><th>Aktion</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Prompt anzeigen</strong></td><td>Alle verfügbaren Prompt-Vorlagen werden mit ihrem Namen und aktuellem Text aufgelistet.</td></tr>
+    <tr><td><strong>Prompt bearbeiten</strong></td><td>Klicke auf einen Prompt, um den Text im Textfeld anzupassen. Klicke anschliessend auf <strong>Save</strong>, um die Änderung zu speichern.</td></tr>
+    <tr><td><strong>Prompt zurücksetzen</strong></td><td>Klicke auf <strong>Reset to default</strong>, um einen Prompt auf seinen ursprünglichen Standardtext zurückzusetzen.</td></tr>
+  </tbody>
+</table>
+<p>Änderungen an den Prompts wirken sich sofort auf alle nachfolgenden Antwortgenerierungen aus. Die angepassten Prompts werden serverseitig in einer separaten Datei gespeichert und überstehen Neustarts der Anwendung.</p>
+<blockquote><p><strong>Achtung:</strong> Änderungen an den Prompts können die Qualität und das Verhalten der generierten Antworten erheblich beeinflussen. Teste Anpassungen sorgfältig.</p></blockquote>
+
+<h3 id="backup">Backup und Wiederherstellung</h3>
+<p>Für die vollständige Datensicherung stehen zwei API-Endpunkte zur Verfügung (ohne grafische Oberfläche):</p>
+<table>
+  <thead><tr><th>Endpunkt</th><th>Methode</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><code>/api/admin/backup</code></td><td>GET</td><td>Lädt ein <code>.tar.gz</code>-Archiv des gesamten Datenverzeichnisses herunter (Datenbank, Vektordatenbank, hochgeladene Dokumente).</td></tr>
+    <tr><td><code>/api/admin/restore</code></td><td>POST</td><td>Stellt die Anwendungsdaten aus einem zuvor erstellten <code>.tar.gz</code>-Backup wieder her. Die bestehenden Daten werden dabei vollständig ersetzt.</td></tr>
+  </tbody>
+</table>
+<p>Diese Endpunkte erfordern einen gültigen Admin-Token und können z.&nbsp;B. per <code>curl</code> aufgerufen werden:</p>
+<pre><code># Backup erstellen
+curl -H "Authorization: Bearer &lt;ADMIN_TOKEN&gt;" \
+  https://&lt;server&gt;/api/admin/backup -o backup.tar.gz
+
+# Backup wiederherstellen
+curl -X POST -H "Authorization: Bearer &lt;ADMIN_TOKEN&gt;" \
+  -F "file=@backup.tar.gz" \
+  https://&lt;server&gt;/api/admin/restore</code></pre>
+<blockquote><p><strong>Achtung:</strong> Die Wiederherstellung ersetzt alle bestehenden Daten (Snippets, Benutzer, Einstellungen). Die Anwendung wird dabei neu initialisiert.</p></blockquote>
+
+<hr>
+
+<!-- ===== Theme ===== -->
+<h2 id="theme">Design-Modus (Theme)</h2>
+
+<p>Unten in der Seitenleiste findest du den <strong>Theme-Umschalter</strong> mit drei Optionen:</p>
+<table>
+  <thead><tr><th>Modus</th><th>Beschreibung</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Light</strong></td><td>Helles Design.</td></tr>
+    <tr><td><strong>Dark</strong></td><td>Dunkles Design.</td></tr>
+    <tr><td><strong>System</strong></td><td>Passt sich automatisch an die Systemeinstellung deines Betriebssystems an.</td></tr>
+  </tbody>
+</table>
+<p>Die Einstellung wird im Browser gespeichert und bleibt auch nach dem Schliessen erhalten.</p>
+
+<hr>
+
+<!-- ===== Tipps ===== -->
+<h2>Tipps für die beste Nutzung</h2>
+<ul>
+  <li><strong>Aussagekräftige Titel vergeben</strong> – Gute Titel helfen dir, Snippets in der Sammlung schnell wiederzufinden.</li>
+  <li><strong>Gruppen sinnvoll nutzen</strong> – Organisiere deine Snippets thematisch in Gruppen, um den Suchbereich gezielt einschränken zu können. Über den Gruppen-Badge kannst du die Zuordnung jederzeit schnell ändern.</li>
+  <li><strong>Beispielfragen pflegen</strong> – Hinterlege bei wichtigen Snippets typische Fragen. Das verbessert die Trefferqualität bei der Suche erheblich.</li>
+  <li><strong>Anweisungen und Voraussetzungen nutzen</strong> – Für verfahrenstechnische Snippets kannst du Handlungsanweisungen und Voraussetzungen als separate Metadaten erfassen. Diese werden auf den Quellenkarten übersichtlich als ausklappbare Abschnitte dargestellt.</li>
+  <li><strong>Antwortnähe anpassen</strong> – Für wörtliche Zitate setze den Regler hoch; für freiere Zusammenfassungen niedrig.</li>
+  <li><strong>Quellen prüfen</strong> – Kontrolliere bei wichtigen Antworten immer die angezeigten Quellen und deren Konfidenzwerte.</li>
+  <li><strong>Verfeinerung nutzen</strong> – Wenn die erste Antwort nicht passt, formuliere eine klare Verfeinerungsanweisung, anstatt die Frage komplett neu zu stellen.</li>
+  <li><strong>Abschlussgruss anpassen</strong> – Passe den Abschlussgruss im Ask-Bereich für deine Sitzung an. Der Standardtext kann vom Administrator über die Prompt-Verwaltung zentral geändert werden.</li>
+  <li><strong>Antwort kopieren</strong> – Nutze die Kopieren-Schaltfläche, um Antwort und Abschlussgruss in einem Schritt in die Zwischenablage zu übernehmen.</li>
+  <li><strong>Sprachübergreifend suchen</strong> – Die Anwendung unterstützt mehrsprachige Suche. Stelle Fragen in einer beliebigen Sprache, auch wenn deine Snippets in einer anderen Sprache vorliegen.</li>
+</ul>
+
+</body>
+</html>

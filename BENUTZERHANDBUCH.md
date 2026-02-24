@@ -81,17 +81,22 @@ Um gezielt nach Snippets zu suchen, stehen dir mehrere Filtermöglichkeiten zur 
 ### Snippet manuell hinzufügen
 
 1. Klicke in der Sammlungsansicht auf **Add snippet**.
-2. Fülle das Formular aus:
+2. Fülle die gemeinsamen Felder aus:
    - **Titel** – Ein aussagekräftiger Name für das Snippet.
    - **Gruppe** – Wähle eine bestehende Gruppe aus oder erstelle eine neue, indem du einen neuen Namen eintippst.
-   - **Sprache** – Wähle die Sprache des Textes (Auto, Deutsch, Englisch, Französisch, Italienisch).
-   - **Text** – Der eigentliche Textinhalt des Snippets.
-3. Optional kannst du unter **Erweitert** zusätzliche Metadaten angeben:
+3. Wechsle zwischen den **Sprach-Tabs** (DE, EN, FR, IT) und gib den Text in den gewünschten Sprachen ein:
+   - **Text** – Der Textinhalt in der jeweiligen Sprache.
+   - **Beispielfragen** – Optionale typische Fragen (eine pro Zeile), die die Suchqualität verbessern.
+   - Es muss mindestens eine Sprache ausgefüllt werden. Sprachen ohne Text werden automatisch übersprungen.
+   - Ausgefüllte Sprach-Tabs werden mit einem Häkchen markiert.
+4. Optional kannst du unter **Shared metadata** zusätzliche Metadaten angeben:
    - **Überschrift** – Eine Überschrift oder Abschnittsbezeichnung.
    - **Kategorie** – Eine inhaltliche Kategorie.
-   - **Verknüpfte Snippets** – Kommagetrennte IDs von zusammengehörigen Snippets (z. B. Übersetzungen).
-   - **PII anonymisieren** – Aktiviere diese Option, um personenbezogene Daten vor dem Speichern automatisch zu anonymisieren.
-4. Klicke auf **Add snippet**, um das Snippet zur Sammlung hinzuzufügen.
+   - **Anweisungen / Verfahren** – Handlungsanweisungen oder Verfahrensbeschreibungen.
+   - **Voraussetzungen** – Voraussetzungen für das beschriebene Verfahren.
+5. Klicke auf **Add snippet**, um das Snippet zur Sammlung hinzuzufügen.
+
+> **Tipp:** Du kannst auch nur eine Sprache ausfüllen. Die fehlenden Sprachen werden dann automatisch vom System übersetzt, sofern die automatische Übersetzung aktiviert ist.
 
 ### Dateien hochladen
 

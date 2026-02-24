@@ -304,6 +304,27 @@ export async function addSnippet(
   return res.json();
 }
 
+export async function addGroupedSnippet(
+  title: string,
+  group: string | null,
+  metadata: SnippetMetadata,
+  translations: Record<string, TranslationEntry>,
+): Promise<{ id: string; languages: string[]; translation_count: number }> {
+  const res = await fetch(`${BASE}/api/snippets/grouped`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({
+      title: title || null,
+      group: group ?? "",
+      metadata: metadata ?? null,
+      translations,
+    }),
+  });
+  await checkUnauthorized(res);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function updateSnippet(
   id: string,
   text: string,

@@ -376,6 +376,122 @@ def post_snippets(
     return {"ids": ids, "count": len(ids)}
 
 
+@app.post("/api/snippets/grouped")
+def post_snippet_grouped(
+    payload: CollectionGroupedItem,
+    current_user: Annotated[dict, Depends(get_current_user)] = None,
+):
+    """Create a single grouped snippet with multiple language translations.
+
+    Accepts the same grouped format used by import/export: a title, group,
+    shared metadata, and a ``translations`` dict keyed by language code.
+    Unlike import, this does **not** replace existing snippets in the group.
+    """
+    from .store import _chunk_text, _get_collection, _index_example_questions
+    from .embeddings import embed
+
+    originals = {
+        lang: tr for lang, tr in payload.translations.items()
+        if not tr.is_generated_translation
+    }
+    generated = {
+        lang: tr for lang, tr in payload.translations.items()
+        if tr.is_generated_translation
+    }
+
+    if not originals:
+        raise HTTPException(status_code=400, detail="At least one non-generated translation is required")
+
+    settings = get_settings()
+    chunk_size = settings.chunk_size
+    overlap = settings.chunk_overlap
+    coll = _get_collection()
+
+    first_lang = next(iter(originals))
+    first_tr = originals[first_lang]
+
+    shared_meta = dict(payload.metadata) if payload.metadata else {}
+    shared_meta["language"] = first_lang
+    if first_tr.example_questions:
+        shared_meta["example_questions"] = first_tr.example_questions
+
+    if len(originals) > 1:
+        all_titles = [f"{payload.title}-{lang}" for lang in originals]
+        shared_meta["linked_snippets"] = [
+            t for t in all_titles if t != f"{payload.title}-{first_lang}"
+        ]
+
+    items = [{
+        "text": first_tr.text,
+        "title": payload.title,
+        "metadata": shared_meta,
+        "group": payload.group,
+    }]
+    ids = add_snippets(items, skip_translation=True)
+    parent_id = ids[0]
+
+    if first_tr.example_questions:
+        _index_example_questions(
+            parent_id, first_tr.example_questions, payload.title, payload.group
+        )
+
+    remaining_originals = {
+        lang: tr for lang, tr in originals.items() if lang != first_lang
+    }
+    all_extra = {**remaining_originals, **generated}
+    translation_count = 0
+
+    for lang, tr in all_extra.items():
+        tr_text = tr.text.strip()
+        if not tr_text:
+            continue
+
+        is_gen = tr.is_generated_translation or lang in generated
+        chunks = _chunk_text(tr_text, chunk_size, overlap)
+        tr_ids: list[str] = []
+        tr_docs: list[str] = []
+        tr_metas: list[dict] = []
+        for idx, chunk in enumerate(chunks):
+            base_id = f"{parent_id}_tr_{lang}"
+            doc_id = base_id if len(chunks) == 1 else f"{base_id}_{idx}"
+            chunk_meta: dict[str, Any] = {
+                "title": payload.title,
+                "parent_id": parent_id,
+                "chunk_index": str(idx),
+                "group": payload.group,
+                "original_language": first_lang,
+                "translation_language": lang,
+                "is_translation": "true",
+            }
+            enriched: dict[str, Any] = dict(shared_meta)
+            enriched["language"] = lang
+            enriched.pop("linked_snippets", None)
+            enriched.pop("example_questions", None)
+            if tr.example_questions:
+                enriched["example_questions"] = tr.example_questions
+            enriched["translation_source"] = "generated" if is_gen else "original"
+            chunk_meta["metadata_json"] = json.dumps(enriched)
+            tr_ids.append(doc_id)
+            tr_docs.append(chunk)
+            tr_metas.append(chunk_meta)
+
+        if tr_ids:
+            embeddings = embed(tr_docs).tolist()
+            coll.add(ids=tr_ids, embeddings=embeddings, documents=tr_docs, metadatas=tr_metas)
+            translation_count += 1
+
+        if tr.example_questions:
+            _index_example_questions(
+                f"{parent_id}_tr_{lang}", tr.example_questions, payload.title, payload.group
+            )
+
+    return {
+        "id": parent_id,
+        "languages": list(payload.translations.keys()),
+        "translation_count": translation_count,
+    }
+
+
 @app.patch("/api/snippets/{snippet_id}")
 def patch_snippet(
     snippet_id: str,
