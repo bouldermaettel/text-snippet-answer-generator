@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getHelpContent, updateHelpContent } from "../api";
 import type { User } from "../types";
 
@@ -8,6 +8,8 @@ type Props = {
 
 export function HelpView({ user }: Props) {
   const isAdmin = user?.role === "admin";
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const iframeCleanupRef = useRef<(() => void) | null>(null);
   const [content, setContent] = useState("");
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,45 @@ export function HelpView({ user }: Props) {
     setEditing(false);
     setMessage(null);
   }
+
+  const bindInternalAnchorNavigation = useCallback((): void => {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!iframe || !doc) {
+      return;
+    }
+
+    iframeCleanupRef.current?.();
+
+    const onClick = (event: MouseEvent): void => {
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest("a[href^='#']") as HTMLAnchorElement | null;
+      const href = anchor?.getAttribute("href");
+      if (!href || href.length <= 1) {
+        return;
+      }
+
+      const anchorId = decodeURIComponent(href.slice(1));
+      const anchorTarget = doc.getElementById(anchorId);
+      if (!anchorTarget) {
+        return;
+      }
+
+      event.preventDefault();
+      anchorTarget.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    doc.addEventListener("click", onClick);
+    iframeCleanupRef.current = () => {
+      doc.removeEventListener("click", onClick);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      iframeCleanupRef.current?.();
+    };
+  }, []);
 
   const dirty = draft !== content;
 
@@ -131,9 +172,11 @@ export function HelpView({ user }: Props) {
         </div>
       ) : (
         <iframe
+          ref={iframeRef}
           title="App help content"
           srcDoc={content}
-          sandbox=""
+          onLoad={bindInternalAnchorNavigation}
+          sandbox="allow-same-origin"
           className="h-[75vh] w-full rounded-lg border border-slate-200 bg-white dark:border-slate-700"
         />
       )}
